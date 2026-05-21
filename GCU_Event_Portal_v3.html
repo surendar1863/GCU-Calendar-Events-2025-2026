@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCU — Department Calendar of Events Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--p:#1a73e8;--pd:#1557b0;--bg:#f8f9fa;--sur:#fff;--brd:#dadce0;--txt:#202124;--mut:#5f6368;--ok:#1e8e3e;--err:#d93025;--r:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Google Sans',Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.hidden{display:none!important}
+input,select,textarea,button{font-family:inherit}
+
+/* LOGIN */
+#loginWrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#1a73e8,#0d47a1)}
+.lcard{background:var(--sur);border-radius:16px;padding:44px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.llogo{text-align:center;margin-bottom:32px}
+.llogo .ico{font-size:52px}
+.llogo h1{font-size:22px;font-weight:700;color:var(--p);margin-top:10px}
+.llogo p{font-size:14px;color:var(--mut);margin-top:4px}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--mut)}
+.fg input,.fg select{width:100%;padding:10px 14px;border:1.5px solid var(--brd);border-radius:var(--r);font-size:14px;transition:border .15s;background:#fff}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.bp{background:var(--p);color:#fff}.bp:hover{background:var(--pd)}
+.bo{background:#fff;color:var(--p);border:1.5px solid var(--p)}.bo:hover{background:#e8f0fe}
+.bg{background:var(--ok);color:#fff}.bg:hover{background:#166d35}
+.bfull{width:100%;justify-content:center}
+.errt{color:var(--err);font-size:13px;margin-top:6px}
+.hint{font-size:12px;color:#bbb;text-align:center;margin-top:16px;line-height:1.8}
+
+/* SHELL */
+#appShell{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--p);color:#fff;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.tb-t{font-size:16px;font-weight:600;display:flex;align-items:center;gap:10px}
+.tb-r{display:flex;align-items:center;gap:14px;font-size:13px}
+.tb-r button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px}
+.tb-r button:hover{background:rgba(255,255,255,.28)}
+
+/* USER VIEW */
+.uview{max-width:660px;margin:44px auto;padding:0 16px}
+.icard{background:var(--sur);border-radius:16px;padding:40px;box-shadow:0 1px 8px rgba(0,0,0,.1)}
+.icard h2{font-size:24px;font-weight:700;margin-bottom:10px}
+.linkbox{background:#e8f0fe;border:1.5px solid #c5d8fb;border-radius:var(--r);padding:12px 16px;font-size:13px;word-break:break-all;margin-bottom:16px;font-family:'Courier New',monospace;line-height:1.5;color:#1a73e8}
+.checklist{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;margin-top:6px}
+
+/* ADMIN LAYOUT */
+.awrap{display:flex;flex:1;min-height:calc(100vh - 52px);overflow:hidden}
+.sidebar{width:230px;background:#fff;border-right:1px solid var(--brd);padding:16px 0;flex-shrink:0}
+.si{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;font-size:14px;transition:background .12s;border-radius:0 24px 24px 0;margin-right:12px;color:var(--mut)}
+.si:hover{background:#e8f0fe;color:var(--p)}
+.si.active{background:#e8f0fe;color:var(--p);font-weight:600}
+.si .ico{width:22px;text-align:center;font-size:16px}
+.main{flex:1;padding:28px;overflow-y:auto;background:var(--bg)}
+.ptitle{font-size:22px;font-weight:700;margin-bottom:22px;color:var(--txt)}
+
+/* CARDS */
+.card{background:var(--sur);border-radius:12px;padding:24px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:18px;border:1px solid var(--brd)}
+.card h3{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:8px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.sc{background:var(--sur);border-radius:12px;padding:20px;box-shadow:0 1px 6px rgba(0,0,0,.08);border:1px solid var(--brd)}
+.sc .num{font-size:32px;font-weight:700;color:var(--p)}
+.sc .lbl{font-size:12px;color:var(--mut);margin-top:4px}
+
+/* ALERTS */
+.al{padding:12px 16px;border-radius:var(--r);font-size:14px;margin-bottom:16px;line-height:1.6}
+.ali{background:#e8f0fe;color:#174ea6;border-left:4px solid var(--p)}
+.als{background:#e6f4ea;color:#137333;border-left:4px solid var(--ok)}
+.alw{background:#fef7e0;color:#7a5c00;border-left:4px solid #f9ab00}
+.ale{background:#fce8e6;color:#c5221f;border-left:4px solid var(--err)}
+
+/* GOOGLE CONNECT AREA */
+.connect-box{border:2px dashed var(--brd);border-radius:12px;padding:36px;text-align:center;background:var(--sur);transition:all .2s}
+.connect-box.connected{border-color:var(--ok);background:#e6f4ea}
+.connect-box .cico{font-size:40px;margin-bottom:12px}
+.connect-box h3{font-size:18px;font-weight:600;margin-bottom:8px}
+.connect-box p{font-size:14px;color:var(--mut);margin-bottom:20px}
+.pulse{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* EVENTS TABLE */
+.etbl{width:100%;border-collapse:collapse;background:var(--sur);border-radius:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.07);font-size:13px;border:1px solid var(--brd)}
+.etbl th{background:#f8f9fa;padding:11px 14px;text-align:left;font-weight:600;border-bottom:2px solid var(--brd);white-space:nowrap;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.etbl td{padding:11px 14px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.etbl tr:last-child td{border-bottom:none}
+.etbl tbody tr:hover td{background:#f8f9fa}
+.bdg{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.bgn{background:#e6f4ea;color:#1e8e3e}
+.bbl{background:#e8f0fe;color:#1a73e8}
+.bor{background:#fef7e0;color:#f29900}
+.brd2{background:#fce8e6;color:#d93025}
+
+/* EVENT DETAIL */
+.edet{background:var(--sur);border-radius:12px;padding:26px;box-shadow:0 1px 6px rgba(0,0,0,.08);border:1px solid var(--brd)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.ditem label{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+.ditem p{font-size:14px;margin-top:3px;line-height:1.5}
+.sth{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.backbtn{background:none;border:none;color:var(--p);cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:4px;margin-bottom:18px;padding:0}
+
+/* PHOTO GRID */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.pthumb{position:relative;aspect-ratio:4/3;border-radius:var(--r);overflow:hidden;background:var(--bg)}
+.pthumb img{width:100%;height:100%;object-fit:cover}
+.pthumb .rmb{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.addph{aspect-ratio:4/3;border:2px dashed var(--brd);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--bg);transition:all .2s;font-size:12px;color:var(--mut);gap:6px}
+.addph:hover{border-color:var(--p);background:#e8f0fe;color:var(--p)}
+
+/* FIELD CONFIG */
+.fctbl{width:100%;border-collapse:collapse;font-size:13px}
+.fctbl th{background:#f8f9fa;padding:10px 12px;text-align:left;font-weight:600;border-bottom:2px solid var(--brd);white-space:nowrap;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.fctbl td{padding:9px 12px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.fctbl tr:last-child td{border-bottom:none}
+.fctbl input[type=text]{width:100%;padding:6px 10px;border:1.5px solid var(--brd);border-radius:6px;font-size:13px}
+.fctbl input[type=text]:focus{outline:none;border-color:var(--p)}
+.fctbl input[type=number]{width:65px;padding:6px 8px;border:1.5px solid var(--brd);border-radius:6px;font-size:13px;text-align:center}
+.fctbl input[type=number]:focus{outline:none;border-color:var(--p)}
+.fctbl select{padding:6px 10px;border:1.5px solid var(--brd);border-radius:6px;font-size:13px}
+.arrbtn{background:none;border:1.5px solid var(--brd);border-radius:6px;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;padding:0;color:var(--mut)}
+.arrbtn:hover:not(:disabled){background:var(--bg);color:var(--p);border-color:var(--p)}
+.arrbtn:disabled{opacity:.3;cursor:default}
+.sys-tag{font-size:11px;color:var(--mut);background:#f1f3f4;border:1px solid var(--brd);padding:2px 8px;border-radius:10px}
+
+/* MISC */
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.srch{padding:9px 14px;border:1.5px solid var(--brd);border-radius:24px;font-size:14px;width:280px}
+.srch:focus{outline:none;border-color:var(--p)}
+.divider{border:none;border-top:1px solid var(--brd);margin:22px 0}
+.stabs{display:flex;border-bottom:2px solid var(--brd);margin-bottom:22px;gap:4px}
+.stab{padding:10px 20px;cursor:pointer;font-size:14px;font-weight:500;color:var(--mut);border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:var(--r) var(--r) 0 0;transition:all .15s}
+.stab:hover{color:var(--p);background:#f8f9fa}
+.stab.active{color:var(--p);border-bottom-color:var(--p);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#e8f0fe;color:var(--p);padding:4px 12px;border-radius:16px;font-size:13px;font-weight:500}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginWrap">
+  <div class="lcard">
+    <div class="llogo">
+      <div class="ico">🎓</div>
+      <h1>Garden City University</h1>
+      <p>Department Calendar of Events Portal</p>
+    </div>
+    <div class="fg">
+      <label>Access Role</label>
+      <select id="lRole">
+        <option value="user">Faculty / User</option>
+        <option value="admin">Administrator</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <input type="password" id="lPass" placeholder="Enter your password"
+        onkeypress="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="lErr" class="errt hidden"></div>
+    <button class="btn bp bfull" style="margin-top:12px;padding:12px" onclick="doLogin()">Sign In →</button>
+    <p class="hint">Default passwords<br>Faculty: <b>gcu2024</b> &nbsp;·&nbsp; Admin: <b>gcuadmin</b><br>
+    <span style="font-size:11px">Change in Settings after first login</span></p>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="appShell">
+  <div class="topbar">
+    <span class="tb-t">🎓 GCU — Department Calendar of Events</span>
+    <div class="tb-r">
+      <span id="topRole"></span>
+      <button onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- USER VIEW -->
+  <div id="userView" class="hidden">
+    <div class="uview">
+      <div class="icard">
+        <div style="font-size:56px;text-align:center;margin-bottom:18px">📋</div>
+        <h2 style="text-align:center">Submit a Department Event</h2>
+        <p style="text-align:center;color:var(--mut);margin-bottom:22px;font-size:15px">
+          Use the Google Form below to submit your event details.</p>
+        <div class="al alw">
+          <b>Have ready:</b> Event dates, venue, coordinator details, participant count, and 2–5 geo-tagged photographs.
+        </div>
+        <div style="font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Form Link</div>
+        <div class="linkbox" id="uFormLink">No form link configured — contact your administrator.</div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:28px">
+          <button class="btn bp" onclick="openForm()">Open Form ↗</button>
+          <button class="btn bo" onclick="copyForm()">📋 Copy Link</button>
+        </div>
+        <hr class="divider">
+        <p style="font-size:13px;font-weight:600;margin-bottom:12px">Fields in this form:</p>
+        <div class="checklist" id="uChecklist"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="adminView" class="awrap hidden">
+    <div class="sidebar">
+      <div style="padding:16px 20px 8px;font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.6px">Menu</div>
+      <div class="si active" id="t-dash"     onclick="gotoTab('dash')">    <span class="ico">📊</span> Dashboard</div>
+      <div class="si"        id="t-events"   onclick="gotoTab('events')">  <span class="ico">📋</span> Events</div>
+      <div class="si"        id="t-report"   onclick="gotoTab('report')">  <span class="ico">📄</span> Generate Report</div>
+      <div class="si"        id="t-settings" onclick="gotoTab('settings')"><span class="ico">⚙️</span> Settings</div>
+    </div>
+
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div id="p-dash">
+        <div class="ptitle">Dashboard</div>
+        <div class="stats">
+          <div class="sc"><div class="num" id="s0">0</div><div class="lbl">Total Events</div></div>
+          <div class="sc"><div class="num" id="s1">0</div><div class="lbl">Departments</div></div>
+          <div class="sc"><div class="num" id="s2">0</div><div class="lbl">Total Participants</div></div>
+          <div class="sc"><div class="num" id="s3">0</div><div class="lbl">Photos Added</div></div>
+        </div>
+
+        <!-- GOOGLE SHEETS CONNECT -->
+        <div id="connectBox" class="connect-box">
+          <div class="cico">🔗</div>
+          <h3>Connect to Google Sheets</h3>
+          <p>Paste your AppScript Web App URL in Settings → Google Sheets,<br>then click the button below to load all responses automatically.</p>
+          <button class="btn bp" style="font-size:15px;padding:12px 28px" onclick="loadFromSheets()">
+            🔄 Load from Google Sheets
+          </button>
+          <div id="loadStatus" style="margin-top:14px;font-size:13px;color:var(--mut)"></div>
+        </div>
+
+        <div id="upOk" class="al als hidden" style="margin-top:16px">
+          ✅ Loaded <strong id="upN">0</strong> event(s) from Google Sheets.
+          Go to <b>Events</b> tab to add photographs.
+          <span id="lastSync" style="float:right;color:var(--mut)"></span>
+        </div>
+
+        <!-- FALLBACK: manual Excel upload -->
+        <div style="margin-top:20px">
+          <details>
+            <summary style="font-size:13px;color:var(--mut);cursor:pointer;padding:8px 0">
+              📁 Or upload Excel manually (fallback)
+            </summary>
+            <div style="margin-top:12px">
+              <div class="al ali" style="font-size:13px">
+                Use this if Google Sheets connection isn't set up yet.
+                Go to Google Forms → Responses → Download as CSV/Excel → upload here.
+              </div>
+              <div style="border:2px dashed var(--brd);border-radius:12px;padding:24px;text-align:center;cursor:pointer;background:var(--sur)"
+                onclick="document.getElementById('xlIn').click()">
+                <input type="file" id="xlIn" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadXL(this)">
+                <div style="font-size:28px;margin-bottom:8px">📊</div>
+                <p style="font-size:14px;color:var(--mut)"><strong style="color:var(--p)">Click to upload</strong> or drag &amp; drop</p>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div id="p-events" class="hidden">
+        <div class="ptitle">All Events</div>
+        <div id="evList">
+          <div id="noEvMsg" class="al ali">No events loaded. Go to Dashboard and click "Load from Google Sheets".</div>
+          <div id="evTableWrap" class="hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <input class="srch" type="text" id="srch" placeholder="🔍  Search events…" oninput="filterEv()">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span id="evCnt" style="font-size:13px;color:var(--mut)"></span>
+                <button class="btn bo" style="padding:7px 14px;font-size:13px" onclick="loadFromSheets()">🔄 Refresh</button>
+              </div>
+            </div>
+            <table class="etbl">
+              <thead>
+                <tr>
+                  <th>#</th><th>Department</th><th>Event Title</th>
+                  <th>Start Date</th><th>Type</th><th>Participants</th>
+                  <th>Photos</th><th></th>
+                </tr>
+              </thead>
+              <tbody id="evTbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="evDet" class="hidden">
+          <button class="backbtn" onclick="showEvList()">← Back to Events</button>
+          <div id="evDetContent"></div>
+        </div>
+      </div>
+
+      <!-- REPORT -->
+      <div id="p-report" class="hidden">
+        <div class="ptitle">Generate .docx Report</div>
+        <div id="noEvRpt" class="al ali">No events loaded. Go to Dashboard and load from Google Sheets first.</div>
+        <div id="rForm" class="hidden">
+          <div class="card">
+            <h3>⚙️ Filters &amp; Options</h3>
+            <div class="fg"><label>Report Title</label><input type="text" id="rTitle"></div>
+            <div class="twocol">
+              <div class="fg"><label>Filter — Department</label>
+                <select id="rDept"><option value="">All Departments</option></select></div>
+              <div class="fg"><label>Filter — Event Type</label>
+                <select id="rType"><option value="">All Types</option></select></div>
+            </div>
+            <div class="fg"><label>Photo Layout</label>
+              <select id="rCols">
+                <option value="2">2 photos per row</option>
+                <option value="3" selected>3 photos per row</option>
+              </select>
+            </div>
+          </div>
+          <div class="card">
+            <h3>👁 Preview — Events to Include</h3>
+            <div id="rPrev"></div>
+          </div>
+          <button class="btn bg" style="font-size:15px;padding:14px 30px" onclick="genDoc()">
+            ⬇&nbsp; Generate &amp; Download .docx Report
+          </button>
+          <div id="rProg" class="hidden" style="margin-top:14px;font-size:14px;color:var(--mut)"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="p-settings" class="hidden">
+        <div class="ptitle">Settings</div>
+        <div class="stabs">
+          <div class="stab active" id="st-general"  onclick="stab('general')">General</div>
+          <div class="stab"        id="st-google"   onclick="stab('google')">🔗 Google Sheets</div>
+          <div class="stab"        id="st-fields"   onclick="stab('fields')">⚙️ Field Config</div>
+          <div class="stab"        id="st-security" onclick="stab('security')">🔑 Security</div>
+        </div>
+
+        <!-- GENERAL -->
+        <div id="sp-general">
+          <div class="card">
+            <h3>🔗 Google Form Link</h3>
+            <div class="al ali" style="font-size:13px">
+              Paste the Google Form sharing URL here. Faculty will see this when they log in.
+            </div>
+            <div class="fg"><label>Google Form URL</label>
+              <input type="url" id="sLink" placeholder="https://forms.gle/…  or  https://docs.google.com/forms/…"></div>
+            <button class="btn bp" onclick="saveLink()">Save Link</button>
+            <div id="lMsg" class="al als hidden" style="margin-top:10px"></div>
+          </div>
+          <div class="card">
+            <h3>🏛 Institution Details</h3>
+            <div class="fg"><label>University Name (appears on report)</label>
+              <input type="text" id="sUni"></div>
+            <div class="fg"><label>Report Sub-heading</label>
+              <input type="text" id="sHead"></div>
+            <button class="btn bp" onclick="saveInst()">Save</button>
+            <div id="iMsg" class="al als hidden" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+        <!-- GOOGLE SHEETS -->
+        <div id="sp-google" class="hidden">
+          <div class="card">
+            <h3>🔗 Google Sheets — AppScript Web App URL</h3>
+            <div class="al ali" style="font-size:13px;margin-bottom:16px">
+              After deploying the AppScript as a Web App, paste the URL here.
+              The dashboard will use this to load responses automatically.
+            </div>
+            <div class="fg">
+              <label>AppScript Web App URL</label>
+              <input type="url" id="sGUrl" placeholder="https://script.google.com/macros/s/…/exec">
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn bp" onclick="saveGUrl()">Save URL</button>
+              <button class="btn bo" onclick="testGUrl()">🧪 Test Connection</button>
+            </div>
+            <div id="gMsg" class="al hidden" style="margin-top:12px"></div>
+          </div>
+
+          <div class="card">
+            <h3>📋 How to set up AppScript (one-time)</h3>
+            <div style="counter-reset:steps">
+              <div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start">
+                <div style="background:var(--p);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">1</div>
+                <div style="font-size:14px;line-height:1.6">Open your <b>Google Form</b> → Responses tab → click the <b>Google Sheets icon</b> (View in Sheets) → your response spreadsheet opens</div>
+              </div>
+              <div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start">
+                <div style="background:var(--p);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:function center;font-size:13px;font-weight:700;flex-shrink:0">2</div>
+                <div style="font-size:14px;line-height:1.6">In Google Sheets → click <b>Extensions → Apps Script</b></div>
+              </div>
+              <div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start">
+                <div style="background:var(--p);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">3</div>
+                <div style="font-size:14px;line-height:1.6"><b>Delete</b> all existing code → <b>Paste</b> the AppScript code from the <code style="background:#f1f3f4;padding:2px 6px;border-radius:4px">AppScript_GCU.gs</code> file provided</div>
+              </div>
+              <div style="display:flex;gap:14px;margin-bottom:14px;align-items:flex-start">
+                <div style="background:var(--p);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">4</div>
+                <div style="font-size:14px;line-height:1.6">Click <b>Deploy → New deployment</b> → Type: <b>Web app</b> → Execute as: <b>Me</b> → Who has access: <b>Anyone</b> → click <b>Deploy</b></div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <div style="background:var(--p);color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">5</div>
+                <div style="font-size:14px;line-height:1.6">Copy the <b>Web app URL</b> → paste it above → click Save → click <b>Test Connection</b> ✅</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FIELD CONFIG -->
+        <div id="sp-fields" class="hidden">
+          <div class="card">
+            <h3>⚙️ Field Configuration</h3>
+            <div class="al ali" style="font-size:13px;margin-bottom:14px">
+              <b>Excel Col</b> = column position in your Google Sheet (0 = column A, 1 = B, etc.).<br>
+              Note: Google Forms adds <b>Timestamp</b> as column 0 automatically — your first real field starts at column 1.
+              Fields marked <span class="sys-tag">System</span> cannot be deleted.
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <button class="btn bo" onclick="addField()">+ Add Custom Field</button>
+              <button class="btn bp" onclick="saveFields()">💾 Save Field Config</button>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="fctbl">
+                <thead>
+                  <tr>
+                    <th style="width:50px">Order</th>
+                    <th>Field Label</th>
+                    <th style="width:80px">Sheet Col</th>
+                    <th style="width:100px">Type</th>
+                    <th style="width:90px;text-align:center">Mandatory</th>
+                    <th style="width:80px;text-align:center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="fcTbody"></tbody>
+              </table>
+            </div>
+            <div id="fcMsg" class="al als hidden" style="margin-top:14px"></div>
+          </div>
+        </div>
+
+        <!-- SECURITY -->
+        <div id="sp-security" class="hidden">
+          <div class="card">
+            <h3>🔑 Change Passwords</h3>
+            <div class="twocol">
+              <div class="fg"><label>Faculty / User Password</label>
+                <input type="password" id="sUPw" placeholder="New user password"></div>
+              <div class="fg"><label>Admin Password</label>
+                <input type="password" id="sAPw" placeholder="New admin password"></div>
+            </div>
+            <button class="btn bp" onclick="savePw()">Update Passwords</button>
+            <div id="pwMsg" class="al als hidden" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+      </div><!-- /settings -->
+    </div><!-- /main -->
+  </div><!-- /awrap -->
+</div><!-- /appShell -->
+
+<script>
+// ════════════════════════════════════════════════════════
+// DEFAULT FIELDS
+// Note: Google Forms auto-adds Timestamp at col 0
+// So real fields start at col 1
+// ════════════════════════════════════════════════════════
+const DEFAULT_FIELDS = [
+  { key:'timestamp',  label:'Timestamp',                    col:0,  mandatory:false, type:'short', system:false },
+  { key:'schoolNo',   label:'School No',                    col:1,  mandatory:true,  type:'short', system:false },
+  { key:'schoolName', label:'School Name',                  col:2,  mandatory:true,  type:'short', system:false },
+  { key:'dept',       label:'Department',                   col:3,  mandatory:true,  type:'short', system:true  },
+  { key:'startDate',  label:'Event Start Date',             col:4,  mandatory:true,  type:'short', system:true  },
+  { key:'endDate',    label:'Event End Date',               col:5,  mandatory:false, type:'short', system:false },
+  { key:'evType',     label:'Type of Event',                col:6,  mandatory:true,  type:'short', system:true  },
+  { key:'venue',      label:'Venue',                        col:7,  mandatory:true,  type:'short', system:false },
+  { key:'title',      label:'Title of Event',               col:8,  mandatory:true,  type:'short', system:true  },
+  { key:'coord',      label:'Faculty Coordinator',          col:9,  mandatory:true,  type:'short', system:false },
+  { key:'empId',      label:'Employee ID',                  col:10, mandatory:true,  type:'short', system:false },
+  { key:'resPerson',  label:'Resource Person(s)',           col:11, mandatory:false, type:'short', system:false },
+  { key:'target',     label:'Target Students',              col:12, mandatory:true,  type:'short', system:false },
+  { key:'partDepts',  label:'Participating Departments',    col:13, mandatory:true,  type:'short', system:false },
+  { key:'partCount',  label:'No. of Participants',          col:14, mandatory:true,  type:'short', system:true  },
+  { key:'writeup',    label:'Write-up (2–3 bullets)',       col:15, mandatory:false, type:'long',  system:false },
+  { key:'desc',       label:'Brief Description',            col:16, mandatory:false, type:'long',  system:false },
+  { key:'outcomes',   label:'Key Outcomes',                 col:17, mandatory:false, type:'long',  system:false },
+];
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+const ST = {
+  role: null, events: [], photos: {},
+  pw: { user:'gcu2024', admin:'gcuadmin' },
+  formLink: '', gUrl: '',
+  uniName: 'Garden City University',
+  subHead: 'Department Calendar of Events — Academic Year 2025-26',
+  fields: JSON.parse(JSON.stringify(DEFAULT_FIELDS))
+};
+
+(function loadSaved() {
+  try {
+    const d = JSON.parse(localStorage.getItem('gcuEPv2') || '{}');
+    if (d.pw)     ST.pw       = d.pw;
+    if (d.fl)     ST.formLink = d.fl;
+    if (d.gu)     ST.gUrl     = d.gu;
+    if (d.un)     ST.uniName  = d.un;
+    if (d.sh)     ST.subHead  = d.sh;
+    if (d.fields && d.fields.length) ST.fields = d.fields;
+  } catch(e) {}
+})();
+
+function persist() {
+  try {
+    localStorage.setItem('gcuEPv2', JSON.stringify({
+      pw:ST.pw, fl:ST.formLink, gu:ST.gUrl,
+      un:ST.uniName, sh:ST.subHead, fields:ST.fields
+    }));
+  } catch(e) {}
+}
+
+function getF(key)   { return ST.fields.find(f=>f.key===key)||null; }
+function getCol(key) { const f=getF(key); return f?f.col:-1; }
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+function doLogin() {
+  const role=document.getElementById('lRole').value;
+  const pass=document.getElementById('lPass').value;
+  const err=document.getElementById('lErr');
+  if (pass!==(role==='admin'?ST.pw.admin:ST.pw.user)) {
+    err.textContent='Incorrect password.'; err.classList.remove('hidden'); return;
+  }
+  err.classList.add('hidden'); ST.role=role;
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+  document.getElementById('topRole').textContent=role==='admin'?'👤 Admin':'👤 Faculty';
+  if (role==='user') {
+    document.getElementById('userView').classList.remove('hidden');
+    document.getElementById('uFormLink').textContent=ST.formLink||'No link configured — contact your administrator.';
+    renderChecklist();
+  } else {
+    document.getElementById('adminView').classList.remove('hidden');
+    initAdmin();
+  }
+}
+function doLogout() { location.reload(); }
+
+// ════════════════════════════════════════════════════════
+// USER VIEW
+// ════════════════════════════════════════════════════════
+function renderChecklist() {
+  const cl=document.getElementById('uChecklist'); if(!cl) return;
+  cl.innerHTML=ST.fields.map(f=>f.key==='timestamp'?'':
+    f.mandatory
+      ? `<div>✅ ${f.label}</div>`
+      : `<div style="color:var(--mut)">⚪ ${f.label} <em style="font-size:11px">(optional)</em></div>`
+  ).join('')+'<div>✅ Geo-Tagged Photos (2–5)</div>';
+}
+function openForm() {
+  if(ST.formLink) window.open(ST.formLink,'_blank');
+  else alert('No form link configured. Contact your administrator.');
+}
+function copyForm() {
+  if(!ST.formLink){alert('No form link configured.');return;}
+  navigator.clipboard.writeText(ST.formLink)
+    .then(()=>alert('Link copied!')).catch(()=>prompt('Copy this link:',ST.formLink));
+}
+
+// ════════════════════════════════════════════════════════
+// ADMIN NAV
+// ════════════════════════════════════════════════════════
+const TABS=['dash','events','report','settings'];
+function initAdmin() {
+  document.getElementById('sLink').value=ST.formLink;
+  document.getElementById('sUni').value=ST.uniName;
+  document.getElementById('sHead').value=ST.subHead;
+  document.getElementById('sGUrl').value=ST.gUrl;
+}
+function gotoTab(id) {
+  TABS.forEach(t=>{
+    document.getElementById('p-'+t).classList.add('hidden');
+    document.getElementById('t-'+t).classList.remove('active');
+  });
+  document.getElementById('p-'+id).classList.remove('hidden');
+  document.getElementById('t-'+id).classList.add('active');
+  if(id==='report') buildReportForm();
+  if(id==='settings') { stab('general'); renderFieldConfig(); }
+}
+function stab(id) {
+  ['general','google','fields','security'].forEach(s=>{
+    document.getElementById('sp-'+s).classList.add('hidden');
+    document.getElementById('st-'+s).classList.remove('active');
+  });
+  document.getElementById('sp-'+id).classList.remove('hidden');
+  document.getElementById('st-'+id).classList.add('active');
+  if(id==='fields') renderFieldConfig();
+}
+
+// ════════════════════════════════════════════════════════
+// GOOGLE SHEETS FETCH
+// ════════════════════════════════════════════════════════
+async function loadFromSheets() {
+  const url=ST.gUrl;
+  const status=document.getElementById('loadStatus');
+  if(!url) {
+    status.innerHTML='<span style="color:var(--err)">⚠ No AppScript URL configured. Go to Settings → Google Sheets.</span>';
+    return;
+  }
+  status.innerHTML='<span class="pulse">⏳ Connecting to Google Sheets… (fetching photos too, please wait)</span>';
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    ST.events = data.rows || [];
+
+    // Load photos from Google Drive (sent as base64 by AppScript)
+    if (data.photos && Object.keys(data.photos).length > 0) {
+      ST.photos = {}; // reset
+      for (const [idx, photoArr] of Object.entries(data.photos)) {
+        const files = [];
+        for (const ph of photoArr) {
+          // Convert base64 + mimeType back to a File object
+          try {
+            const byteStr = atob(ph.base64);
+            const arr = new Uint8Array(byteStr.length);
+            for (let i=0;i<byteStr.length;i++) arr[i]=byteStr.charCodeAt(i);
+            const ext = ph.mimeType.split('/')[1] || 'jpg';
+            const file = new File([arr], `photo_${idx}_${files.length}.${ext}`, {type: ph.mimeType});
+            files.push(file);
+          } catch(pe) { console.warn('Photo decode error:', pe); }
+        }
+        if (files.length > 0) ST.photos[parseInt(idx)] = files;
+      }
+    }
+
+    updateStats(); refreshTable();
+    document.getElementById('upN').textContent=ST.events.length;
+    document.getElementById('upOk').classList.remove('hidden');
+    const totalPh = Object.values(ST.photos).reduce((s,a)=>s+a.length,0);
+    document.getElementById('lastSync').textContent=
+      'Last synced: '+new Date().toLocaleTimeString('en-IN')+
+      (totalPh>0 ? ` · ${totalPh} photo(s) loaded` : '');
+    document.getElementById('connectBox').classList.add('connected');
+    status.innerHTML='<span style="color:var(--ok)">✅ Connected! '+ST.events.length+
+      ' event(s) and '+totalPh+' photo(s) loaded automatically.</span>';
+  } catch(e) {
+    status.innerHTML='<span style="color:var(--err)">❌ Error: '+e.message+'. Check your AppScript URL in Settings.</span>';
+  }
+}
+
+async function testGUrl() {
+  const url=document.getElementById('sGUrl').value.trim();
+  const msg=document.getElementById('gMsg');
+  if(!url){msg.className='al ale';msg.textContent='Please enter a URL first.';msg.classList.remove('hidden');return;}
+  msg.className='al ali';msg.textContent='⏳ Testing connection…';msg.classList.remove('hidden');
+  try {
+    const res=await fetch(url);
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+    msg.className='al als';
+    msg.textContent=`✅ Connection successful! Found ${data.total||0} response(s) in your Google Sheet.`;
+  } catch(e) {
+    msg.className='al ale';
+    msg.textContent='❌ Connection failed: '+e.message+'. Make sure the Web App is deployed with "Anyone" access.';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// EXCEL FALLBACK
+// ════════════════════════════════════════════════════════
+function loadXL(inp) {
+  if(!window.XLSX){
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>_doLoadXL(inp); document.head.appendChild(s); return;
+  }
+  _doLoadXL(inp);
+}
+function _doLoadXL(inp) {
+  const file=inp.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const wb=XLSX.read(e.target.result,{type:'binary',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const hi=rows.findIndex(r=>r.some(v=>/department|title|event/i.test(String(v))));
+      ST.events=rows.slice(hi+1).filter(r=>r.some(v=>v!==''));
+      updateStats(); refreshTable();
+      document.getElementById('upN').textContent=ST.events.length;
+      document.getElementById('upOk').classList.remove('hidden');
+    } catch(err){alert('Could not read file: '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function gv(row,col) {
+  const v=row[col];
+  if(v===null||v===undefined||v==='') return '';
+  if(v instanceof Date) return v.toLocaleDateString('en-IN');
+  return String(v).trim();
+}
+function updateStats() {
+  const dc=getCol('dept'),pc=getCol('partCount');
+  document.getElementById('s0').textContent=ST.events.length;
+  document.getElementById('s1').textContent=new Set(ST.events.map(r=>gv(r,dc)).filter(Boolean)).size;
+  document.getElementById('s2').textContent=ST.events.reduce((s,r)=>s+(parseInt(gv(r,pc))||0),0);
+  document.getElementById('s3').textContent=Object.values(ST.photos).reduce((s,a)=>s+a.length,0);
+}
+function flash(id,msg,cls='als') {
+  const el=document.getElementById(id);
+  el.className='al '+cls; el.textContent=msg; el.classList.remove('hidden');
+  setTimeout(()=>el.classList.add('hidden'),3500);
+}
+
+// ════════════════════════════════════════════════════════
+// EVENTS TABLE
+// ════════════════════════════════════════════════════════
+let filtEv=[];
+function refreshTable() {
+  if(!ST.events.length) return;
+  document.getElementById('noEvMsg').classList.add('hidden');
+  document.getElementById('evTableWrap').classList.remove('hidden');
+  filterEv();
+}
+function filterEv() {
+  const q=(document.getElementById('srch')?.value||'').toLowerCase();
+  const sc=['dept','title','coord','venue','evType'].map(getCol);
+  filtEv=ST.events.filter(r=>!q||sc.some(c=>c>=0&&gv(r,c).toLowerCase().includes(q)));
+  document.getElementById('evCnt').textContent=filtEv.length+' event(s)';
+  renderTable();
+}
+function renderTable() {
+  const tb=document.getElementById('evTbody'); tb.innerHTML='';
+  const dc=getCol('dept'),tc=getCol('title'),sd=getCol('startDate'),
+        et=getCol('evType'),pc=getCol('partCount');
+  filtEv.forEach(row=>{
+    const i=ST.events.indexOf(row);
+    const ph=(ST.photos[i]||[]).length;
+    const pb=ph>0?`<span class="bdg bgn">✓ ${ph}</span>`:`<span class="bdg brd2">No photos</span>`;
+    const tc2={Workshop:'bbl',Seminar:'bbl','Guest Lecture':'bor',Conference:'bbl',FDP:'bor'}[gv(row,et)]||'bbl';
+    tb.innerHTML+=`<tr>
+      <td style="color:var(--mut)">${i+1}</td>
+      <td>${gv(row,dc)}</td>
+      <td style="max-width:200px;line-height:1.4">${gv(row,tc)}</td>
+      <td style="white-space:nowrap">${gv(row,sd)}</td>
+      <td><span class="bdg ${tc2}">${gv(row,et)}</span></td>
+      <td style="text-align:center">${gv(row,pc)}</td>
+      <td>${pb}</td>
+      <td><button class="btn bo" style="padding:5px 12px;font-size:12px" onclick="openDet(${i})">View / Photos</button></td>
+    </tr>`;
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// EVENT DETAIL
+// ════════════════════════════════════════════════════════
+function showEvList() {
+  document.getElementById('evList').classList.remove('hidden');
+  document.getElementById('evDet').classList.add('hidden');
+}
+function openDet(i) {
+  document.getElementById('evList').classList.add('hidden');
+  document.getElementById('evDet').classList.remove('hidden');
+  renderDet(i);
+}
+function renderDet(i) {
+  const row=ST.events[i]; const ph=ST.photos[i]||[];
+  const tv=getF('title')?gv(row,getCol('title')):`Event #${i+1}`;
+  const dv=getF('dept')?gv(row,getCol('dept')):'';
+  const shortF=ST.fields.filter(f=>f.type==='short'&&f.key!=='timestamp');
+  const longF=ST.fields.filter(f=>f.type==='long');
+  const detGrid=shortF.map(f=>{const v=gv(row,f.col);if(!v)return '';
+    return `<div class="ditem"><label>${f.label}</label><p>${v}</p></div>`;}).join('');
+  const longB=longF.map(f=>{const v=gv(row,f.col);if(!v)return '';
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${f.label}</div>
+      <div style="font-size:14px;line-height:1.7">${v}</div></div>`;}).join('');
+  const canAdd=ph.length<5;
+  const phHtml=ph.map((f,pi)=>{const u=URL.createObjectURL(f);
+    return `<div class="pthumb"><img src="${u}" alt="Photo ${pi+1}">
+      <button class="rmb" onclick="rmPhoto(${i},${pi})">×</button></div>`;}).join('');
+  document.getElementById('evDetContent').innerHTML=`
+    <div class="edet">
+      <h2 style="font-size:20px;margin-bottom:4px">${tv}</h2>
+      <p style="color:var(--mut);font-size:13px;margin-bottom:22px">Event #${i+1} &nbsp;·&nbsp; ${dv}</p>
+      <div class="sth">📌 Event Details</div>
+      <div class="dgrid">${detGrid}</div>
+      ${longB?`<hr class="divider"><div>${longB}</div>`:''}
+      <hr class="divider">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="sth" style="margin:0">📷 Geo-Tagged Photographs (${ph.length}/5)</div>
+        ${canAdd?`<label class="btn bo" style="cursor:pointer;font-size:13px">+ Add Photos
+          <input type="file" accept="image/*" multiple style="display:none" onchange="addPhotos(${i},this)"></label>`
+        :`<span style="font-size:13px;color:var(--mut)">Maximum 5 reached</span>`}
+      </div>
+      <div class="pgrid">${phHtml}
+        ${canAdd&&ph.length===0?`<label class="addph">
+          <input type="file" accept="image/*" multiple style="display:none" onchange="addPhotos(${i},this)">
+          <span style="font-size:30px">📷</span><span>Add Photos</span></label>`:''}
+      </div>
+      ${canAdd&&ph.length>0?`<label class="btn bo" style="cursor:pointer;font-size:13px;margin-top:12px">
+        + Add More <input type="file" accept="image/*" multiple style="display:none" onchange="addPhotos(${i},this)"></label>`:''}
+    </div>`;
+}
+function addPhotos(i,inp) {
+  const files=Array.from(inp.files);
+  if(!ST.photos[i]) ST.photos[i]=[];
+  const room=5-ST.photos[i].length;
+  ST.photos[i].push(...files.slice(0,room));
+  if(files.length>room) alert(`Only ${room} more photo(s) allowed.`);
+  updateStats(); renderDet(i);
+}
+function rmPhoto(ei,pi) {
+  ST.photos[ei].splice(pi,1);
+  if(!ST.photos[ei].length) delete ST.photos[ei];
+  updateStats(); renderDet(ei);
+}
+
+// ════════════════════════════════════════════════════════
+// FIELD CONFIG UI
+// ════════════════════════════════════════════════════════
+function renderFieldConfig() {
+  const tb=document.getElementById('fcTbody'); tb.innerHTML='';
+  ST.fields.forEach((f,i)=>{
+    tb.innerHTML+=`<tr>
+      <td><div style="display:flex;flex-direction:column;gap:3px">
+        <button class="arrbtn" onclick="moveF(${i},-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="arrbtn" onclick="moveF(${i},1)"  ${i===ST.fields.length-1?'disabled':''}>↓</button>
+      </div></td>
+      <td><input type="text" id="fl-${i}" value="${f.label.replace(/"/g,'&quot;')}"></td>
+      <td><input type="number" id="fc-${i}" value="${f.col}" min="0" max="99"></td>
+      <td><select id="ft-${i}">
+        <option value="short" ${f.type==='short'?'selected':''}>Short</option>
+        <option value="long"  ${f.type==='long' ?'selected':''}>Long text</option>
+      </select></td>
+      <td style="text-align:center">
+        <input type="checkbox" id="fm-${i}" ${f.mandatory?'checked':''} style="width:16px;height:16px;cursor:pointer">
+      </td>
+      <td style="text-align:center">
+        ${f.system?`<span class="sys-tag">System</span>`
+        :`<button class="btn" style="background:var(--err);color:#fff;padding:4px 10px;font-size:12px"
+          onclick="delField(${i})">Remove</button>`}
+      </td>
+    </tr>`;
+  });
+}
+function syncEdits() {
+  ST.fields.forEach((f,i)=>{
+    const l=document.getElementById(`fl-${i}`),c=document.getElementById(`fc-${i}`),
+          t=document.getElementById(`ft-${i}`),m=document.getElementById(`fm-${i}`);
+    if(l) f.label=l.value.trim()||f.label;
+    if(c) f.col=parseInt(c.value)||0;
+    if(t) f.type=t.value;
+    if(m) f.mandatory=m.checked;
+  });
+}
+function moveF(i,dir) {
+  syncEdits(); const j=i+dir;
+  if(j<0||j>=ST.fields.length) return;
+  [ST.fields[i],ST.fields[j]]=[ST.fields[j],ST.fields[i]];
+  renderFieldConfig();
+}
+function delField(i) {
+  if(!confirm(`Remove field "${ST.fields[i].label}"?`)) return;
+  syncEdits(); ST.fields.splice(i,1); renderFieldConfig();
+}
+function addField() {
+  syncEdits();
+  const maxCol=Math.max(...ST.fields.map(f=>f.col),-1);
+  ST.fields.push({key:'custom_'+Date.now(),label:'New Field',col:maxCol+1,mandatory:false,type:'short',system:false});
+  renderFieldConfig();
+  document.getElementById('fcTbody').lastElementChild?.scrollIntoView({behavior:'smooth'});
+}
+function saveFields() {
+  syncEdits(); persist(); renderChecklist();
+  flash('fcMsg','✅ Field configuration saved successfully.');
+}
+
+// ════════════════════════════════════════════════════════
+// REPORT
+// ════════════════════════════════════════════════════════
+function buildReportForm() {
+  const has=ST.events.length>0;
+  document.getElementById('noEvRpt').classList.toggle('hidden',has);
+  document.getElementById('rForm').classList.toggle('hidden',!has);
+  if(!has) return;
+  document.getElementById('rTitle').value=ST.subHead;
+  const dc=getCol('dept'),tc=getCol('evType');
+  const dSel=document.getElementById('rDept');
+  dSel.innerHTML='<option value="">All Departments</option>';
+  [...new Set(ST.events.map(r=>gv(r,dc)).filter(Boolean))].forEach(d=>dSel.innerHTML+=`<option>${d}</option>`);
+  const tSel=document.getElementById('rType');
+  tSel.innerHTML='<option value="">All Types</option>';
+  [...new Set(ST.events.map(r=>gv(r,tc)).filter(Boolean))].forEach(t=>tSel.innerHTML+=`<option>${t}</option>`);
+  ['rDept','rType'].forEach(id=>document.getElementById(id).onchange=updatePreview);
+  updatePreview();
+}
+function getFilteredEv() {
+  const dept=document.getElementById('rDept').value;
+  const type=document.getElementById('rType').value;
+  const dc=getCol('dept'),tc=getCol('evType');
+  return ST.events.filter(r=>{
+    if(dept&&gv(r,dc)!==dept) return false;
+    if(type&&gv(r,tc)!==type) return false;
+    return true;
+  });
+}
+function updatePreview() {
+  const ev=getFilteredEv();
+  const titleCol=getCol('title'),deptCol=getCol('dept');
+  let html=`<p style="font-size:13px;color:var(--mut);margin-bottom:10px"><b>${ev.length}</b> event(s) will be included.</p>`;
+  ev.slice(0,10).forEach(row=>{
+    const i=ST.events.indexOf(row); const pc=(ST.photos[i]||[]).length;
+    html+=`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd);font-size:13px">
+      <span>${gv(row,titleCol)} <span style="color:var(--mut)">— ${gv(row,deptCol)}</span></span>
+      <span>${pc?`📷 ${pc}`:'<span style="color:var(--err)">⚠ No photos</span>'}</span></div>`;
+  });
+  if(ev.length>10) html+=`<p style="font-size:12px;color:var(--mut);margin-top:8px">…and ${ev.length-10} more</p>`;
+  document.getElementById('rPrev').innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════
+// DOCX GENERATION
+// ════════════════════════════════════════════════════════
+async function genDoc() {
+  const ev=getFilteredEv();
+  if(!ev.length){alert('No events match filters.');return;}
+  const prog=document.getElementById('rProg');
+  prog.innerHTML='⏳ Building document…'; prog.classList.remove('hidden');
+  try {
+    await buildDocx(ev,parseInt(document.getElementById('rCols').value),
+                       document.getElementById('rTitle').value);
+    prog.innerHTML='✅ Report downloaded!';
+    setTimeout(()=>prog.classList.add('hidden'),4000);
+  } catch(e){prog.innerHTML='❌ '+e.message;console.error(e);}
+}
+function toB64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
+function X(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function buildDocx(events,photoCols,reportTitle) {
+  const zip=new JSZip();
+  const imgs=[]; const eRange=[];
+  for(const row of events){
+    const oi=ST.events.indexOf(row); const ph=ST.photos[oi]||[];
+    const start=imgs.length;
+    for(const f of ph){
+      const b64=await toB64(f); let ext=(f.name.split('.').pop()||'jpg').toLowerCase();
+      if(ext==='jpg') ext='jpeg';
+      const ct=ext==='png'?'image/png':ext==='gif'?'image/gif':'image/jpeg';
+      imgs.push({b64,ext,ct,rId:`rImg${imgs.length}`});
+    }
+    eRange.push([start,imgs.length]);
+  }
+  const tblW=9360,colTw=Math.floor(tblW/photoCols);
+  const imgW=Math.floor((colTw-120)*635),imgH=Math.floor(imgW*0.65);
+  const shortF=ST.fields.filter(f=>f.type==='short'&&f.key!=='timestamp');
+  const longF=ST.fields.filter(f=>f.type==='long');
+  const titleF=getF('title');
+  let body=`
+  <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="60"/></w:pPr>
+    <w:r><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="1a73e8"/>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+      <w:t>${X(ST.uniName)}</w:t></w:r></w:p>
+  <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="300"/></w:pPr>
+    <w:r><w:rPr><w:sz w:val="24"/><w:color w:val="555555"/>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+      <w:t>${X(reportTitle)}</w:t></w:r></w:p>`;
+
+  events.forEach((row,ei)=>{
+    const [imgStart,imgEnd]=eRange[ei];
+    const evImgs=imgs.slice(imgStart,imgEnd);
+    const tv=titleF?gv(row,titleF.col):`Event ${ei+1}`;
+    body+=`<w:p><w:pPr><w:spacing w:before="240" w:after="100"/></w:pPr>
+      <w:r><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="1a73e8"/>
+        <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+        <w:t>${X(tv)}</w:t></w:r></w:p>`;
+    const trows=shortF.filter(f=>gv(row,f.col));
+    if(trows.length){
+      body+=`<w:tbl><w:tblPr>
+        <w:tblW w:w="${tblW}" w:type="dxa"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="4" w:color="DADCE0"/>
+          <w:left w:val="single" w:sz="4" w:color="DADCE0"/>
+          <w:bottom w:val="single" w:sz="4" w:color="DADCE0"/>
+          <w:right w:val="single" w:sz="4" w:color="DADCE0"/>
+          <w:insideH w:val="single" w:sz="4" w:color="DADCE0"/>
+          <w:insideV w:val="single" w:sz="4" w:color="DADCE0"/>
+        </w:tblBorders>
+        <w:tblCellMar>
+          <w:top w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/>
+          <w:bottom w:w="80" w:type="dxa"/><w:right w:w="120" w:type="dxa"/>
+        </w:tblCellMar></w:tblPr>`;
+      trows.forEach((f,ri)=>{
+        const bg=ri%2===0?'E8F0FE':'FFFFFF';
+        body+=`<w:tr>
+          <w:tc><w:tcPr><w:tcW w:w="2700" w:type="dxa"/><w:shd w:val="clear" w:fill="${bg}"/></w:tcPr>
+            <w:p><w:r><w:rPr><w:b/><w:sz w:val="20"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+              <w:t>${X(f.label)}</w:t></w:r></w:p></w:tc>
+          <w:tc><w:tcPr><w:tcW w:w="6660" w:type="dxa"/><w:shd w:val="clear" w:fill="${bg}"/></w:tcPr>
+            <w:p><w:r><w:rPr><w:sz w:val="20"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+              <w:t>${X(gv(row,f.col))}</w:t></w:r></w:p></w:tc>
+        </w:tr>`;
+      });
+      body+=`</w:tbl><w:p><w:r><w:t></w:t></w:r></w:p>`;
+    }
+    longF.filter(f=>gv(row,f.col)).forEach(f=>{
+      body+=`<w:p><w:pPr><w:spacing w:before="100" w:after="40"/></w:pPr>
+        <w:r><w:rPr><w:b/><w:sz w:val="22"/><w:color w:val="1a73e8"/>
+          <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+          <w:t>${X(f.label)}</w:t></w:r></w:p>
+      <w:p><w:pPr><w:spacing w:after="120"/></w:pPr>
+        <w:r><w:rPr><w:sz w:val="20"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+          <w:t xml:space="preserve">${X(gv(row,f.col))}</w:t></w:r></w:p>`;
+    });
+    if(evImgs.length>0){
+      body+=`<w:p><w:pPr><w:spacing w:before="160" w:after="80"/></w:pPr>
+        <w:r><w:rPr><w:b/><w:sz w:val="22"/><w:color w:val="1a73e8"/>
+          <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+          <w:t>Event Photographs</w:t></w:r></w:p>`;
+      for(let r=0;r<evImgs.length;r+=photoCols){
+        const chunk=evImgs.slice(r,r+photoCols);
+        body+=`<w:tbl><w:tblPr>
+          <w:tblW w:w="${tblW}" w:type="dxa"/>
+          <w:tblBorders><w:top w:val="none"/><w:left w:val="none"/>
+            <w:bottom w:val="none"/><w:right w:val="none"/>
+            <w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders>
+          <w:tblCellMar>
+            <w:top w:w="40" w:type="dxa"/><w:left w:w="40" w:type="dxa"/>
+            <w:bottom w:w="40" w:type="dxa"/><w:right w:w="40" w:type="dxa"/>
+          </w:tblCellMar></w:tblPr><w:tr>`;
+        for(let c=0;c<photoCols;c++){
+          const img=chunk[c]; const ai=img?imgs.indexOf(img):-1;
+          body+=`<w:tc><w:tcPr><w:tcW w:w="${colTw}" w:type="dxa"/></w:tcPr>
+            <w:p><w:pPr><w:jc w:val="center"/></w:pPr>`;
+          if(img) body+=`<w:r><w:drawing>
+            <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+              distT="0" distB="0" distL="0" distR="0">
+              <wp:extent cx="${imgW}" cy="${imgH}"/>
+              <wp:effectExtent l="0" t="0" r="0" b="0"/>
+              <wp:docPr id="${ai+1}" name="Photo${ai+1}"/>
+              <wp:cNvGraphicFramePr>
+                <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+              </wp:cNvGraphicFramePr>
+              <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                  <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:nvPicPr>
+                      <pic:cNvPr id="${ai+1}" name="Photo${ai+1}"/>
+                      <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
+                    </pic:nvPicPr>
+                    <pic:blipFill>
+                      <a:blip r:embed="${img.rId}"
+                        xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+                      <a:stretch><a:fillRect/></a:stretch>
+                    </pic:blipFill>
+                    <pic:spPr>
+                      <a:xfrm><a:off x="0" y="0"/><a:ext cx="${imgW}" cy="${imgH}"/></a:xfrm>
+                      <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                    </pic:spPr>
+                  </pic:pic>
+                </a:graphicData>
+              </a:graphic>
+            </wp:inline>
+          </w:drawing></w:r>`;
+          body+=`</w:p></w:tc>`;
+        }
+        body+=`</w:tr></w:tbl>
+        <w:p><w:pPr><w:spacing w:after="60"/></w:pPr><w:r><w:t></w:t></w:r></w:p>`;
+      }
+    }
+    if(ei<events.length-1) body+=`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+  });
+
+  const extSet=[...new Set(imgs.map(i=>i.ext))];
+  const defTypes=extSet.map(ext=>{
+    const ct=ext==='png'?'image/png':ext==='gif'?'image/gif':'image/jpeg';
+    return `<Default Extension="${ext}" ContentType="${ct}"/>`;
+  }).join('\n  ');
+
+  zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  ${defTypes}
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+</Types>`);
+  zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+  const wf=zip.folder('word');
+  wf.file('_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+  ${imgs.map(img=>`<Relationship Id="${img.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${img.rId}.${img.ext}"/>`).join('\n  ')}
+</Relationships>`);
+  wf.file('document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  mc:Ignorable="w14 wp14">
+  <w:body>
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+    ${body}
+  </w:body>
+</w:document>`);
+  wf.file('styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults><w:rPrDefault><w:rPr>
+    <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>
+    <w:sz w:val="22"/><w:szCs w:val="22"/>
+  </w:rPr></w:rPrDefault></w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+  <w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style>
+</w:styles>`);
+  wf.file('settings.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:defaultTabStop w:val="708"/>
+  <w:compat><w:compatSetting w:name="compatibilityMode"
+    w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat>
+</w:settings>`);
+  const mf=wf.folder('media');
+  imgs.forEach(img=>mf.file(`${img.rId}.${img.ext}`,img.b64,{base64:true}));
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`GCU_Event_Report_${new Date().toISOString().slice(0,10)}.docx`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+
+// ════════════════════════════════════════════════════════
+// SETTINGS SAVE
+// ════════════════════════════════════════════════════════
+function saveLink(){
+  ST.formLink=document.getElementById('sLink').value.trim(); persist();
+  const d=document.getElementById('uFormLink');
+  if(d) d.textContent=ST.formLink||'No link configured.';
+  flash('lMsg','✅ Form link saved.');
+}
+function saveInst(){
+  ST.uniName=document.getElementById('sUni').value.trim();
+  ST.subHead=document.getElementById('sHead').value.trim();
+  persist(); flash('iMsg','✅ Institution details saved.');
+}
+function saveGUrl(){
+  ST.gUrl=document.getElementById('sGUrl').value.trim();
+  persist(); flash('gMsg','✅ AppScript URL saved. Click "Test Connection" to verify.','als');
+}
+function savePw(){
+  const u=document.getElementById('sUPw').value,a=document.getElementById('sAPw').value;
+  if(!u&&!a){alert('Enter at least one password.');return;}
+  if(u) ST.pw.user=u; if(a) ST.pw.admin=a;
+  document.getElementById('sUPw').value='';
+  document.getElementById('sAPw').value='';
+  persist(); flash('pwMsg','✅ Passwords updated.');
+}
+</script>
+</body>
+</html>
