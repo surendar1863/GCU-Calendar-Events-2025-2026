@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCU — Upload Event Photographs</title>
+<style>
+:root{--p:#1a73e8;--pd:#1557b0;--bg:#f8f9fa;--sur:#fff;--brd:#dadce0;
+      --txt:#202124;--mut:#5f6368;--ok:#1e8e3e;--err:#d93025;--r:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Google Sans',Roboto,sans-serif;background:var(--bg);
+     color:var(--txt);min-height:100vh}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px}
+.topbar{background:var(--p);color:#fff;padding:14px 24px;
+        display:flex;align-items:center;gap:12px;margin-bottom:0}
+.topbar h1{font-size:17px;font-weight:600}
+.card{background:var(--sur);border-radius:12px;padding:28px;
+      box-shadow:0 1px 6px rgba(0,0,0,.1);border:1px solid var(--brd);
+      margin-bottom:16px}
+.card h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--mut);line-height:1.6}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:13px;font-weight:600;
+          margin-bottom:6px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+.fg input{width:100%;padding:11px 14px;border:1.5px solid var(--brd);
+          border-radius:var(--r);font-size:15px;font-family:inherit;transition:border .15s}
+.fg input:focus{outline:none;border-color:var(--p);
+                box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 22px;
+     border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;
+     border:none;transition:all .15s;font-family:inherit}
+.bp{background:var(--p);color:#fff}.bp:hover{background:var(--pd)}
+.bo{background:#fff;color:var(--p);border:1.5px solid var(--p)}.bo:hover{background:#e8f0fe}
+.bg{background:var(--ok);color:#fff}.bg:hover{background:#166d35}
+.bfull{width:100%;justify-content:center}
+.al{padding:12px 16px;border-radius:var(--r);font-size:14px;
+    margin-bottom:16px;line-height:1.5}
+.ali{background:#e8f0fe;color:#174ea6;border-left:4px solid var(--p)}
+.als{background:#e6f4ea;color:#137333;border-left:4px solid var(--ok)}
+.alw{background:#fff3cd;color:#856404;border-left:4px solid #ffc107}
+.ale{background:#fce8e6;color:#c5221f;border-left:4px solid var(--err)}
+.hidden{display:none!important}
+.divider{border:none;border-top:1px solid var(--brd);margin:20px 0}
+
+/* Event info box */
+.evbox{background:#e8f0fe;border:1.5px solid #c5d8fb;border-radius:10px;
+       padding:16px 20px;margin-bottom:20px}
+.evbox .evtitle{font-size:17px;font-weight:700;color:var(--p);margin-bottom:4px}
+.evbox .evmeta{font-size:13px;color:var(--mut)}
+
+/* Photo upload area */
+.photo-list{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.photo-item{border:1.5px solid var(--brd);border-radius:10px;
+            overflow:hidden;background:var(--sur)}
+.photo-item.filled{border-color:var(--p)}
+.photo-header{display:flex;align-items:center;justify-content:space-between;
+              padding:10px 14px;background:#f8f9fa;border-bottom:1px solid var(--brd)}
+.photo-num{font-size:13px;font-weight:600;color:var(--mut)}
+.photo-body{padding:14px}
+.photo-preview{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;
+               margin-bottom:10px;display:none}
+.photo-preview.show{display:block}
+.upload-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+            width:100%;aspect-ratio:16/9;border:2px dashed var(--brd);
+            border-radius:6px;cursor:pointer;font-size:14px;color:var(--mut);
+            background:var(--bg);transition:all .2s;margin-bottom:10px}
+.upload-btn:hover{border-color:var(--p);background:#e8f0fe;color:var(--p)}
+.upload-btn.hide{display:none}
+.caption-wrap{position:relative}
+.caption-inp{width:100%;padding:10px 14px;border:1.5px solid var(--brd);
+             border-radius:var(--r);font-size:14px;font-family:inherit;transition:border .15s}
+.caption-inp:focus{outline:none;border-color:var(--p);
+                   box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.caption-inp.error{border-color:var(--err)}
+.caption-req{font-size:11px;color:var(--err);margin-top:4px;display:none}
+.rmphoto{background:none;border:none;color:var(--err);cursor:pointer;
+         font-size:13px;font-weight:600;padding:0}
+
+/* Add photo button */
+.add-photo-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+               width:100%;padding:14px;border:2px dashed var(--brd);border-radius:10px;
+               cursor:pointer;font-size:14px;font-weight:600;color:var(--p);
+               background:var(--sur);transition:all .2s}
+.add-photo-btn:hover{border-color:var(--p);background:#e8f0fe}
+
+/* Progress */
+.progress-bar{width:100%;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--p);border-radius:3px;
+               transition:width .3s;width:0%}
+
+/* Success screen */
+.success-ico{font-size:64px;text-align:center;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span style="font-size:24px">🎓</span>
+  <h1>GCU — Upload Event Photographs</h1>
+</div>
+
+<div class="wrap">
+
+  <!-- STEP 1: Find Event -->
+  <div id="step1">
+    <div class="card" style="margin-top:20px">
+      <h2>Find Your Event</h2>
+      <p style="margin-bottom:20px">Enter your Employee ID to find your event submission.</p>
+
+      <div class="fg">
+        <label>Employee ID</label>
+        <input type="text" id="empId" placeholder="e.g. GCU1234"
+          onkeypress="if(event.key==='Enter')findEvent()">
+      </div>
+      <div id="searchErr" class="ale al hidden"></div>
+      <button class="btn bp bfull" onclick="findEvent()" id="findBtn">
+        🔍 Find My Event
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Confirm Event -->
+  <div id="step2" class="hidden">
+    <div class="card" style="margin-top:20px">
+      <h2>Confirm Your Event</h2>
+      <p style="margin-bottom:16px">Is this the event you want to upload photographs for?</p>
+
+      <div id="eventList"></div>
+
+      <button class="btn bo" style="margin-top:8px" onclick="backToSearch()">
+        ← Search Again
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Upload Photos -->
+  <div id="step3" class="hidden">
+    <div style="margin-top:20px">
+
+      <div class="evbox" id="evConfirmBox"></div>
+
+      <div class="card">
+        <h2 style="margin-bottom:6px">Upload Photographs</h2>
+        <p style="margin-bottom:16px">Upload 1–5 geo-tagged photographs. Each photo needs a caption.</p>
+
+        <div class="al ali" style="margin-bottom:16px">
+          📌 <b>Caption tip:</b> Describe what's happening in the photo, e.g.
+          <em>"Chief Guest Dr. Ramesh inaugurating the workshop"</em>
+        </div>
+
+        <div class="photo-list" id="photoList"></div>
+
+        <button class="add-photo-btn" id="addPhotoBtn" onclick="addPhotoSlot()">
+          + Add Photo
+        </button>
+
+        <div id="uploadErr" class="ale al hidden" style="margin-top:14px"></div>
+      </div>
+
+      <button class="btn bg bfull" style="font-size:15px;padding:14px"
+        onclick="submitPhotos()">
+        📤 Submit Photographs
+      </button>
+
+      <div id="progress" class="hidden" style="margin-top:16px">
+        <p style="font-size:14px;color:var(--mut);margin-bottom:8px" id="progTxt">
+          Uploading…
+        </p>
+        <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="stepSuccess" class="hidden">
+    <div class="card" style="margin-top:20px;text-align:center">
+      <div class="success-ico">✅</div>
+      <h2 style="margin-bottom:8px">Photos Submitted Successfully!</h2>
+      <p style="margin-bottom:20px">Your photographs have been saved and will appear in the event report.</p>
+      <div id="successDetails" class="evbox" style="text-align:left;margin-bottom:20px"></div>
+      <button class="btn bo" onclick="location.reload()">
+        Upload for Another Event
+      </button>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+// ── Config ──────────────────────────────────────────────────
+// Paste your AppScript Web App URL here
+// This will be auto-set via the portal Settings page
+const SCRIPT_URL = localStorage.getItem('gcuScriptUrl') || '';
+
+let selectedEvent = null;
+let photoSlots    = [];   // [{file, caption}]
+
+// ── Step 1: Find Event ───────────────────────────────────────
+async function findEvent() {
+  const empId = document.getElementById('empId').value.trim();
+  const err   = document.getElementById('searchErr');
+  const btn   = document.getElementById('findBtn');
+
+  if (!empId) {
+    err.textContent = 'Please enter your Employee ID.';
+    err.classList.remove('hidden'); return;
+  }
+  if (!SCRIPT_URL) {
+    err.textContent = 'Configuration error: Script URL not set. Contact your administrator.';
+    err.classList.remove('hidden'); return;
+  }
+
+  err.classList.add('hidden');
+  btn.textContent = '⏳ Searching…'; btn.disabled = true;
+
+  try {
+    const url = `${SCRIPT_URL}?action=search&empId=${encodeURIComponent(empId)}`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+    if (!data.matches || data.matches.length === 0) {
+      err.textContent = `No event found for Employee ID "${empId}". Please check and try again.`;
+      err.classList.remove('hidden'); return;
+    }
+
+    showStep2(data.matches);
+  } catch(e) {
+    err.textContent = 'Connection error: ' + e.message;
+    err.classList.remove('hidden');
+  } finally {
+    btn.textContent = '🔍 Find My Event'; btn.disabled = false;
+  }
+}
+
+// ── Step 2: Show matching events ────────────────────────────
+function showStep2(matches) {
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('step2').classList.remove('hidden');
+
+  const list = document.getElementById('eventList');
+  list.innerHTML = matches.map((ev, i) => `
+    <div style="border:1.5px solid var(--brd);border-radius:10px;padding:16px;
+      margin-bottom:10px;cursor:pointer;transition:all .15s"
+      onmouseover="this.style.borderColor='var(--p)'"
+      onmouseout="this.style.borderColor='var(--brd)'"
+      onclick="selectEvent(${i})">
+      <div style="font-size:16px;font-weight:700;color:var(--p);margin-bottom:4px">
+        ${ev.title || 'Untitled Event'}
+      </div>
+      <div style="font-size:13px;color:var(--mut)">
+        ${ev.dept} &nbsp;·&nbsp; ${ev.startDate}
+        ${ev.hasPhotos ? '&nbsp;<span style="color:var(--ok);font-weight:600">✓ Photos already uploaded</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+
+  list._matches = matches;
+}
+
+function backToSearch() {
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step1').classList.remove('hidden');
+}
+
+// ── Step 3: Upload photos ────────────────────────────────────
+function selectEvent(idx) {
+  selectedEvent = document.getElementById('eventList')._matches[idx];
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step3').classList.remove('hidden');
+
+  document.getElementById('evConfirmBox').innerHTML = `
+    <div class="evtitle">${selectedEvent.title}</div>
+    <div class="evmeta">${selectedEvent.dept} &nbsp;·&nbsp; ${selectedEvent.startDate}</div>
+  `;
+
+  // Reset and add first slot
+  photoSlots = [];
+  document.getElementById('photoList').innerHTML = '';
+  addPhotoSlot();
+}
+
+function addPhotoSlot() {
+  if (photoSlots.length >= 5) return;
+
+  const idx  = photoSlots.length;
+  photoSlots.push({ file: null, caption: '' });
+
+  const item = document.createElement('div');
+  item.className = 'photo-item';
+  item.id = `slot-${idx}`;
+  item.innerHTML = `
+    <div class="photo-header">
+      <span class="photo-num">Photo ${idx + 1}</span>
+      ${idx > 0 ? `<button class="rmphoto" onclick="removeSlot(${idx})">✕ Remove</button>` : ''}
+    </div>
+    <div class="photo-body">
+      <img class="photo-preview" id="prev-${idx}" alt="Preview">
+      <label class="upload-btn" id="ubtn-${idx}">
+        <input type="file" accept="image/*" style="display:none"
+          onchange="photoSelected(${idx}, this)">
+        <span style="font-size:22px">📷</span>
+        <span>Click to select photo</span>
+      </label>
+      <div class="caption-wrap">
+        <input class="caption-inp" id="cap-${idx}"
+          placeholder="Caption for this photo (required)"
+          oninput="photoSlots[${idx}].caption=this.value;this.classList.remove('error')">
+        <div class="caption-req" id="creq-${idx}">Caption is required</div>
+      </div>
+    </div>`;
+
+  document.getElementById('photoList').appendChild(item);
+
+  // Update add button
+  const addBtn = document.getElementById('addPhotoBtn');
+  if (photoSlots.length >= 5) addBtn.classList.add('hidden');
+}
+
+function removeSlot(idx) {
+  photoSlots.splice(idx, 1);
+  // Re-render all slots
+  document.getElementById('photoList').innerHTML = '';
+  const saved = [...photoSlots];
+  photoSlots = [];
+  document.getElementById('addPhotoBtn').classList.remove('hidden');
+  saved.forEach((s, i) => {
+    addPhotoSlot();
+    if (s.file) {
+      photoSlots[i].file    = s.file;
+      photoSlots[i].caption = s.caption;
+      // Re-show preview
+      const prev = document.getElementById(`prev-${i}`);
+      const ubtn = document.getElementById(`ubtn-${i}`);
+      const cap  = document.getElementById(`cap-${i}`);
+      prev.src = URL.createObjectURL(s.file);
+      prev.classList.add('show');
+      ubtn.classList.add('hide');
+      cap.value = s.caption;
+      document.getElementById(`slot-${i}`).classList.add('filled');
+    }
+  });
+}
+
+function photoSelected(idx, inp) {
+  const file = inp.files[0]; if (!file) return;
+  photoSlots[idx].file = file;
+
+  const prev = document.getElementById(`prev-${idx}`);
+  const ubtn = document.getElementById(`ubtn-${idx}`);
+  prev.src   = URL.createObjectURL(file);
+  prev.classList.add('show');
+  ubtn.classList.add('hide');
+  document.getElementById(`slot-${idx}`).classList.add('filled');
+}
+
+// ── Submit ───────────────────────────────────────────────────
+async function submitPhotos() {
+  const err = document.getElementById('uploadErr');
+  err.classList.add('hidden');
+
+  // Validate
+  const filled = photoSlots.filter(s => s.file);
+  if (filled.length === 0) {
+    err.textContent = 'Please add at least one photograph.';
+    err.classList.remove('hidden'); return;
+  }
+
+  let valid = true;
+  photoSlots.forEach((s, i) => {
+    if (!s.file) return;
+    const capEl  = document.getElementById(`cap-${i}`);
+    const reqEl  = document.getElementById(`creq-${i}`);
+    if (!s.caption.trim()) {
+      capEl.classList.add('error');
+      reqEl.style.display = 'block';
+      valid = false;
+    }
+  });
+  if (!valid) {
+    err.textContent = 'Please fill in captions for all uploaded photos.';
+    err.classList.remove('hidden'); return;
+  }
+
+  // Show progress
+  document.getElementById('progress').classList.remove('hidden');
+  setProgress(10, 'Converting photos…');
+
+  try {
+    // Convert photos to base64
+    const photos = [];
+    for (let i = 0; i < photoSlots.length; i++) {
+      const s = photoSlots[i]; if (!s.file) continue;
+      setProgress(10 + Math.floor((i/photoSlots.length)*50), `Processing photo ${i+1}…`);
+      const b64 = await toBase64(s.file);
+      photos.push({
+        base64   : b64,
+        mimeType : s.file.type || 'image/jpeg',
+        caption  : s.caption.trim()
+      });
+    }
+
+    setProgress(70, 'Uploading to Google Drive…');
+
+    // Send to AppScript
+    await fetch(SCRIPT_URL, {
+      method  : 'POST',
+      mode    : 'no-cors',
+      headers : { 'Content-Type': 'text/plain' },
+      body    : JSON.stringify({
+        rowIndex : selectedEvent.rowIndex,
+        empId    : selectedEvent.empId,
+        photos
+      })
+    });
+
+    setProgress(100, 'Done!');
+    setTimeout(() => showSuccess(photos.length), 800);
+
+  } catch(e) {
+    document.getElementById('progress').classList.add('hidden');
+    err.textContent = 'Upload error: ' + e.message;
+    err.classList.remove('hidden');
+  }
+}
+
+function setProgress(pct, txt) {
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progTxt').textContent  = txt;
+}
+
+function showSuccess(count) {
+  document.getElementById('step3').classList.add('hidden');
+  document.getElementById('stepSuccess').classList.remove('hidden');
+  document.getElementById('successDetails').innerHTML = `
+    <div class="evtitle">${selectedEvent.title}</div>
+    <div class="evmeta">${selectedEvent.dept} &nbsp;·&nbsp; ${selectedEvent.startDate}</div>
+    <div style="margin-top:10px;font-size:13px;color:var(--ok);font-weight:600">
+      ✓ ${count} photograph${count>1?'s':''} uploaded successfully
+    </div>`;
+}
+
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Read script URL from localStorage (set by portal) ───────
+window.addEventListener('load', () => {
+  // Try to get URL from query param (set by portal)
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get('scriptUrl');
+  if (urlParam) {
+    localStorage.setItem('gcuScriptUrl', urlParam);
+    location.replace(location.pathname); // remove from URL
+  }
+});
+</script>
+</body>
+</html>
