@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCU — Upload Event Photographs</title>
+<style>
+:root{--p:#1a73e8;--pd:#1557b0;--bg:#f8f9fa;--sur:#fff;--brd:#dadce0;
+      --txt:#202124;--mut:#5f6368;--ok:#1e8e3e;--err:#d93025;--r:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Google Sans',Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.topbar{background:var(--p);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px}
+.topbar h1{font-size:17px;font-weight:600}
+.wrap{max-width:640px;margin:0 auto;padding:24px 16px}
+.card{background:var(--sur);border-radius:12px;padding:28px;
+      box-shadow:0 1px 6px rgba(0,0,0,.1);border:1px solid var(--brd);margin-bottom:16px}
+.card h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.card p{font-size:14px;color:var(--mut);line-height:1.6;margin-bottom:0}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:12px;font-weight:700;margin-bottom:6px;
+          color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+.fg select{width:100%;padding:11px 14px;border:1.5px solid var(--brd);
+           border-radius:var(--r);font-size:15px;font-family:inherit;
+           transition:border .15s;background:#fff;cursor:pointer}
+.fg select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 22px;
+     border-radius:var(--r);font-size:14px;font-weight:600;cursor:pointer;
+     border:none;transition:all .15s;font-family:inherit}
+.bp{background:var(--p);color:#fff}.bp:hover{background:var(--pd)}
+.bg{background:var(--ok);color:#fff}.bg:hover{background:#166d35}
+.bfull{width:100%;justify-content:center}
+.al{padding:12px 16px;border-radius:var(--r);font-size:14px;margin-bottom:16px;line-height:1.5}
+.ali{background:#e8f0fe;color:#174ea6;border-left:4px solid var(--p)}
+.als{background:#e6f4ea;color:#137333;border-left:4px solid var(--ok)}
+.ale{background:#fce8e6;color:#c5221f;border-left:4px solid var(--err)}
+.hidden{display:none!important}
+.divider{border:none;border-top:1px solid var(--brd);margin:20px 0}
+
+/* Event confirm box */
+.evbox{background:#e8f0fe;border:1.5px solid #c5d8fb;border-radius:10px;padding:16px 20px;margin-bottom:20px}
+.evbox .evtitle{font-size:17px;font-weight:700;color:var(--p);margin-bottom:4px}
+.evbox .evmeta{font-size:13px;color:var(--mut)}
+
+/* Photo slots */
+.photo-list{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.photo-item{border:1.5px solid var(--brd);border-radius:10px;overflow:hidden;background:var(--sur);transition:border .2s}
+.photo-item.filled{border-color:var(--p)}
+.photo-header{display:flex;align-items:center;justify-content:space-between;
+              padding:10px 14px;background:#f8f9fa;border-bottom:1px solid var(--brd)}
+.photo-num{font-size:13px;font-weight:600;color:var(--mut)}
+.photo-body{padding:14px}
+.photo-preview{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:6px;
+               margin-bottom:10px;display:none}
+.photo-preview.show{display:block}
+.upload-zone{display:flex;align-items:center;justify-content:center;gap:8px;
+             width:100%;aspect-ratio:16/9;border:2px dashed var(--brd);border-radius:6px;
+             cursor:pointer;font-size:14px;color:var(--mut);background:var(--bg);
+             transition:all .2s;margin-bottom:10px;flex-direction:column}
+.upload-zone:hover{border-color:var(--p);background:#e8f0fe;color:var(--p)}
+.upload-zone.hide{display:none}
+.caption-inp{width:100%;padding:10px 14px;border:1.5px solid var(--brd);
+             border-radius:var(--r);font-size:14px;font-family:inherit;transition:border .15s}
+.caption-inp:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(26,115,232,.12)}
+.caption-inp.err{border-color:var(--err)}
+.caption-hint{font-size:11px;color:var(--err);margin-top:4px;display:none}
+.rmphoto{background:none;border:none;color:var(--err);cursor:pointer;font-size:13px;font-weight:600;padding:0}
+
+/* Add photo btn */
+.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+         width:100%;padding:14px;border:2px dashed var(--brd);border-radius:10px;
+         cursor:pointer;font-size:14px;font-weight:600;color:var(--p);
+         background:var(--sur);transition:all .2s;font-family:inherit;border-style:dashed}
+.add-btn:hover{border-color:var(--p);background:#e8f0fe}
+
+/* Progress */
+.prog-bar{width:100%;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;background:var(--p);border-radius:3px;transition:width .4s;width:0%}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);
+         border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Steps indicator */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:24px;margin-top:8px}
+.step{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.step.active{color:var(--p);font-weight:600}
+.step.done{color:var(--ok)}
+.step-num{width:26px;height:26px;border-radius:50%;border:2px solid var(--brd);
+          display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.step.active .step-num{border-color:var(--p);background:var(--p);color:#fff}
+.step.done .step-num{border-color:var(--ok);background:var(--ok);color:#fff}
+.step-line{flex:1;height:2px;background:var(--brd);margin:0 8px}
+.step-line.done{background:var(--ok)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span style="font-size:24px">🎓</span>
+  <h1>GCU — Upload Event Photographs</h1>
+</div>
+
+<div class="wrap">
+
+  <!-- Steps -->
+  <div class="steps" style="margin-top:20px">
+    <div class="step active" id="stp1">
+      <div class="step-num" id="sn1">1</div>
+      <span>Select Event</span>
+    </div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step" id="stp2">
+      <div class="step-num" id="sn2">2</div>
+      <span>Upload Photos</span>
+    </div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step" id="stp3">
+      <div class="step-num" id="sn3">3</div>
+      <span>Done</span>
+    </div>
+  </div>
+
+  <!-- STEP 1: Select Event -->
+  <div id="step1">
+    <div class="card">
+      <h2>Select Your Event</h2>
+      <p style="margin-bottom:16px">Choose the event you submitted from the list below.</p>
+
+      <div id="loadingEvents" class="al ali">⏳ Loading events…</div>
+      <div id="loadErr" class="al ale hidden"></div>
+
+      <div id="eventDropWrap" class="hidden">
+        <div class="fg">
+          <label>Event</label>
+          <select id="eventDrop" onchange="eventSelected()">
+            <option value="">— Select your event —</option>
+          </select>
+        </div>
+
+        <!-- Event confirm box (shown after selection) -->
+        <div id="evConfirm" class="evbox hidden">
+          <div class="evtitle" id="evTitle"></div>
+          <div class="evmeta" id="evMeta"></div>
+        </div>
+
+        <button class="btn bp bfull" id="proceedBtn" onclick="goToUpload()"
+          style="margin-top:4px" disabled>
+          Continue to Upload Photos →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Upload Photos -->
+  <div id="step2" class="hidden">
+    <div class="card">
+      <div class="evbox" id="evConfirm2"></div>
+
+      <h2 style="margin-bottom:6px">Upload Photographs</h2>
+      <p style="margin-bottom:16px">Add 1–5 geo-tagged photographs. A caption is required for each photo.</p>
+
+      <div class="al ali" style="margin-bottom:16px;font-size:13px">
+        💡 <b>Caption tip:</b> Describe what's happening —
+        e.g. <em>"Chief Guest Dr. Ramesh inaugurating the event"</em>
+      </div>
+
+      <div class="photo-list" id="photoList"></div>
+
+      <button class="add-btn" id="addBtn" onclick="addSlot()">
+        + Add Another Photo
+      </button>
+
+      <div id="uploadErr" class="ale al hidden" style="margin-top:14px"></div>
+    </div>
+
+    <button class="btn bg bfull" id="submitBtn"
+      style="font-size:15px;padding:14px" onclick="submitPhotos()">
+      📤 Submit Photographs
+    </button>
+
+    <div id="progWrap" class="hidden" style="margin-top:14px">
+      <p style="font-size:14px;color:var(--mut)" id="progTxt">Uploading…</p>
+      <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: Success -->
+  <div id="step3" class="hidden">
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:64px;margin-bottom:16px">✅</div>
+      <h2 style="margin-bottom:8px">Photos Submitted!</h2>
+      <p style="margin-bottom:20px">Your photographs have been saved successfully and will appear in the event report.</p>
+      <div class="evbox" id="successBox" style="text-align:left;margin-bottom:24px"></div>
+      <button class="btn bp" onclick="location.reload()">Upload for Another Event</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpM-PZM_0YKEHpzbj3_VxaqjVFVG66cysCZFTVdnTyFMftwedgDgMOFCvf4GywXlk/exec';
+
+let allEvents = [];   // [{rowIndex, title, dept, startDate}]
+let selected  = null; // chosen event
+let slots     = [];   // [{file, caption}]
+
+// ── Load events on page load ─────────────────────────────────
+window.addEventListener('load', loadEvents);
+
+async function loadEvents() {
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=events`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    // Use lightweight event list (no photos fetched)
+    allEvents = (data.events || []).filter(e => e.title);
+
+    document.getElementById('loadingEvents').classList.add('hidden');
+
+    if (!allEvents.length) {
+      document.getElementById('loadErr').textContent =
+        'No events found. Please submit the Google Form first, then come back here.';
+      document.getElementById('loadErr').classList.remove('hidden');
+      return;
+    }
+
+    // Populate dropdown
+    const drop = document.getElementById('eventDrop');
+    allEvents.forEach((ev, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `${ev.title} — ${ev.dept} (${ev.startDate})`;
+      drop.appendChild(opt);
+    });
+
+    document.getElementById('eventDropWrap').classList.remove('hidden');
+
+  } catch(e) {
+    document.getElementById('loadingEvents').classList.add('hidden');
+    document.getElementById('loadErr').textContent = 'Could not load events: ' + e.message;
+    document.getElementById('loadErr').classList.remove('hidden');
+  }
+}
+
+// ── Event selected from dropdown ─────────────────────────────
+function eventSelected() {
+  const idx = document.getElementById('eventDrop').value;
+  const confirm = document.getElementById('evConfirm');
+  const btn     = document.getElementById('proceedBtn');
+
+  if (idx === '') {
+    confirm.classList.add('hidden');
+    btn.disabled = true; return;
+  }
+
+  selected = allEvents[parseInt(idx)];
+  document.getElementById('evTitle').textContent = selected.title;
+  document.getElementById('evMeta').textContent  =
+    selected.dept + (selected.startDate ? '  ·  ' + selected.startDate : '');
+  confirm.classList.remove('hidden');
+  btn.disabled = false;
+}
+
+// ── Go to photo upload step ──────────────────────────────────
+function goToUpload() {
+  if (!selected) return;
+
+  // Update steps UI
+  setStep(2);
+
+  document.getElementById('step1').classList.add('hidden');
+  document.getElementById('step2').classList.remove('hidden');
+
+  document.getElementById('evConfirm2').innerHTML = `
+    <div class="evtitle">${selected.title}</div>
+    <div class="evmeta">${selected.dept}${selected.startDate ? '  ·  '+selected.startDate : ''}</div>`;
+
+  // Reset slots and add first one
+  slots = [];
+  document.getElementById('photoList').innerHTML = '';
+  addSlot();
+}
+
+// ── Add a photo slot ─────────────────────────────────────────
+function addSlot() {
+  if (slots.length >= 5) return;
+  const idx = slots.length;
+  slots.push({ file: null, caption: '' });
+
+  const div = document.createElement('div');
+  div.className = 'photo-item';
+  div.id = `slot-${idx}`;
+  div.innerHTML = `
+    <div class="photo-header">
+      <span class="photo-num">📷 Photo ${idx + 1}</span>
+      ${idx > 0
+        ? `<button class="rmphoto" onclick="removeSlot(${idx})">✕ Remove</button>`
+        : ''}
+    </div>
+    <div class="photo-body">
+      <img class="photo-preview" id="prev-${idx}" alt="Preview">
+      <label class="upload-zone" id="uzone-${idx}">
+        <input type="file" accept="image/*" style="display:none"
+          onchange="photoChosen(${idx},this)">
+        <span style="font-size:28px">📷</span>
+        <span>Click to select photo</span>
+        <span style="font-size:12px;color:var(--mut)">JPG, PNG supported</span>
+      </label>
+      <input class="caption-inp" id="cap-${idx}" type="text"
+        placeholder="Write a caption for this photo (required)"
+        oninput="slots[${idx}].caption=this.value;this.classList.remove('err');
+                 document.getElementById('chint-${idx}').style.display='none'">
+      <div class="caption-hint" id="chint-${idx}">Caption is required</div>
+    </div>`;
+
+  document.getElementById('photoList').appendChild(div);
+
+  // Hide add button if max reached
+  if (slots.length >= 5) {
+    document.getElementById('addBtn').classList.add('hidden');
+  }
+}
+
+// ── Remove a slot ────────────────────────────────────────────
+function removeSlot(idx) {
+  // Save current data
+  const saved = slots.map((s, i) => ({
+    file    : s.file,
+    caption : document.getElementById(`cap-${i}`)?.value || s.caption
+  }));
+  saved.splice(idx, 1);
+
+  // Re-render
+  slots = [];
+  document.getElementById('photoList').innerHTML = '';
+  document.getElementById('addBtn').classList.remove('hidden');
+
+  saved.forEach((s, i) => {
+    addSlot();
+    if (s.file) {
+      slots[i].file    = s.file;
+      slots[i].caption = s.caption;
+      const prev  = document.getElementById(`prev-${i}`);
+      const uzone = document.getElementById(`uzone-${i}`);
+      const cap   = document.getElementById(`cap-${i}`);
+      prev.src    = URL.createObjectURL(s.file);
+      prev.classList.add('show');
+      uzone.classList.add('hide');
+      cap.value   = s.caption;
+      document.getElementById(`slot-${i}`).classList.add('filled');
+    }
+  });
+}
+
+// ── Photo file chosen ────────────────────────────────────────
+function photoChosen(idx, inp) {
+  const file = inp.files[0]; if (!file) return;
+  slots[idx].file = file;
+
+  const prev  = document.getElementById(`prev-${idx}`);
+  const uzone = document.getElementById(`uzone-${idx}`);
+  prev.src    = URL.createObjectURL(file);
+  prev.classList.add('show');
+  uzone.classList.add('hide');
+  document.getElementById(`slot-${idx}`).classList.add('filled');
+}
+
+// ── Submit photos ────────────────────────────────────────────
+async function submitPhotos() {
+  const err = document.getElementById('uploadErr');
+  err.classList.add('hidden');
+
+  // Validate — at least one photo
+  const filled = slots.filter(s => s.file);
+  if (!filled.length) {
+    err.textContent = 'Please add at least one photograph.';
+    err.classList.remove('hidden'); return;
+  }
+
+  // Validate — all uploaded photos must have captions
+  let valid = true;
+  slots.forEach((s, i) => {
+    if (!s.file) return;
+    const capEl   = document.getElementById(`cap-${i}`);
+    const hintEl  = document.getElementById(`chint-${i}`);
+    s.caption = capEl.value.trim();
+    if (!s.caption) {
+      capEl.classList.add('err');
+      hintEl.style.display = 'block';
+      valid = false;
+    }
+  });
+  if (!valid) {
+    err.textContent = 'Please fill captions for all uploaded photos.';
+    err.classList.remove('hidden'); return;
+  }
+
+  // Show progress
+  const prog = document.getElementById('progWrap');
+  const btn  = document.getElementById('submitBtn');
+  prog.classList.remove('hidden');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Uploading…';
+
+  try {
+    // Convert to base64
+    const photos = [];
+    for (let i = 0; i < slots.length; i++) {
+      const s = slots[i]; if (!s.file) continue;
+      setProgress(10 + Math.floor((i / slots.length) * 50),
+        `Processing photo ${i+1} of ${filled.length}…`);
+      const b64 = await toB64(s.file);
+      photos.push({ base64: b64, mimeType: s.file.type || 'image/jpeg', caption: s.caption });
+    }
+
+    setProgress(70, 'Saving to Google Drive…');
+
+    // Send to AppScript (no-cors mode)
+    await fetch(SCRIPT_URL, {
+      method  : 'POST',
+      mode    : 'no-cors',
+      headers : { 'Content-Type': 'text/plain' },
+      body    : JSON.stringify({
+        rowIndex : selected.rowIndex,
+        title    : selected.title,
+        dept     : selected.dept,
+        date     : selected.startDate,
+        photos
+      })
+    });
+
+    setProgress(100, 'Done!');
+    setTimeout(() => showSuccess(photos.length), 800);
+
+  } catch(e) {
+    prog.classList.add('hidden');
+    btn.disabled = false;
+    btn.innerHTML = '📤 Submit Photographs';
+    err.textContent = 'Upload error: ' + e.message;
+    err.classList.remove('hidden');
+  }
+}
+
+function setProgress(pct, txt) {
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progTxt').textContent  = txt;
+}
+
+function showSuccess(count) {
+  setStep(3);
+  document.getElementById('step2').classList.add('hidden');
+  document.getElementById('step3').classList.remove('hidden');
+  document.getElementById('successBox').innerHTML = `
+    <div class="evtitle">${selected.title}</div>
+    <div class="evmeta">${selected.dept}  ·  ${selected.startDate}</div>
+    <div style="margin-top:10px;font-size:13px;color:var(--ok);font-weight:600">
+      ✓ ${count} photograph${count>1?'s':''} uploaded successfully
+    </div>`;
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const stp = document.getElementById(`stp${i}`);
+    const sn  = document.getElementById(`sn${i}`);
+    stp.classList.remove('active','done');
+    if (i < n)  { stp.classList.add('done');   sn.textContent = '✓'; }
+    if (i === n) { stp.classList.add('active'); }
+  });
+  [1,2].forEach(i => {
+    const sl = document.getElementById(`sl${i}`);
+    sl.classList.toggle('done', i < n);
+  });
+}
+
+function toB64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+</script>
+</body>
+</html>
