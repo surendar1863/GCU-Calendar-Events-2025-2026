@@ -461,7 +461,7 @@ input,select,button,textarea{font-family:inherit}
 // ════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════
-let SCRIPT_URL  = localStorage.getItem('gcuPRUrl') || 'https://script.google.com/macros/s/AKfycbx54S4K1SyBE6OWAthLTx-Cowh4gNtPwz4RAujFLZYAzffQkZ3Cotbg5qTXrJLD3nHF/exec';
+let SCRIPT_URL  = localStorage.getItem('gcuPRUrl') || 'https://script.google.com/macros/s/AKfycbyeNM0wTxZFlCGJGIinEuI3sKgMxVKF6dxM9y5QPF6HWatQf9UMEFmFDtE1Meo8sfkL/exec';
 let PASSWORDS   = JSON.parse(localStorage.getItem('gcuPRPw') || '{"user":"gcu2024","admin":"gcuadmin"}');
 let eventsData  = { depts: [], events: [] };
 let photoSlots  = [];
@@ -836,11 +836,9 @@ function renderReport() {
         <div class="event-label">${item.event}${item.date?' — '+item.date:''}</div>
         <div class="photo-grid">`;
       item.photos.forEach(ph => {
+        const src = `data:${ph.mimeType};base64,${ph.base64}`;
         html += `<div class="grid-item">
-          <img class="grid-img" src="${ph.url}" alt="${ph.caption}"
-            loading="lazy"
-            onerror="this.style.background='#f1f3f4';this.removeAttribute('src');
-                     this.insertAdjacentHTML('afterend','<div style=\'padding:10px;font-size:12px;color:#999\'>Image unavailable</div>')">
+          <img class="grid-img" src="${src}" alt="${ph.caption}" loading="lazy">
           <div class="grid-cap">${ph.caption}</div>
         </div>`;
       });
@@ -871,27 +869,24 @@ async function generateDocx() {
     });
     const depts = Object.keys(byDept);
 
-    // Collect images
-    setGProg(5, 'Downloading images…');
+    // Collect images from base64 data (already in memory)
+    setGProg(10, 'Processing images…');
     const imgs = []; const itemRanges = [];
-    let processed = 0;
-    const totalPhotos = reportData.reduce((s,r)=>s+r.photos.length,0);
 
     for (const dept of depts) {
       for (const item of byDept[dept]) {
         const start = imgs.length;
-        for (const ph of item.photos) {
-          try {
-            const resp = await fetch(ph.url);
-            const blob = await resp.blob();
-            const b64  = await toB64Blob(blob);
-            let   ext  = (blob.type||'image/jpeg').split('/')[1]||'jpeg';
-            if (ext==='jpg') ext='jpeg';
-            imgs.push({ b64, ext, mime:blob.type, caption:ph.caption, rId:`rImg${imgs.length}` });
-          } catch(fe) { console.warn('Image fetch failed:', fe); }
-          processed++;
-          setGProg(5 + Math.floor(processed/totalPhotos*60), `Downloading image ${processed}/${totalPhotos}…`);
-        }
+        item.photos.forEach(ph => {
+          let ext = (ph.mimeType || 'image/jpeg').split('/')[1] || 'jpeg';
+          if (ext === 'jpg') ext = 'jpeg';
+          imgs.push({
+            b64     : ph.base64,
+            ext,
+            mime    : ph.mimeType || 'image/jpeg',
+            caption : ph.caption || '',
+            rId     : `rImg${imgs.length}`
+          });
+        });
         itemRanges.push([start, imgs.length]);
       }
     }
