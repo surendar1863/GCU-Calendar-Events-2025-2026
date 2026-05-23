@@ -745,19 +745,21 @@ async function submitFaculty() {
     setFProg(75, 'Saving to Google Drive…');
 
     // Fire and forget — no-cors means we can't read response
-    fetch(SCRIPT_URL, {
-      method  : 'POST',
-      mode    : 'no-cors',
-      headers : { 'Content-Type': 'text/plain' },
-      body    : JSON.stringify({
-        action   : 'submit',
-        rowIndex : selectedEv.rowIndex,
-        dept     : selectedEv.dept,
-        event    : selectedEv.event,
-        date     : selectedEv.date,
-        photos
-      })
-    }).catch(() => {}); // ignore network errors silently
+    try {
+      fetch(SCRIPT_URL, {
+        method  : 'POST',
+        mode    : 'no-cors',
+        headers : { 'Content-Type': 'text/plain' },
+        body    : JSON.stringify({
+          action   : 'submit',
+          rowIndex : selectedEv.rowIndex,
+          dept     : selectedEv.dept,
+          event    : selectedEv.event,
+          date     : selectedEv.date,
+          photos
+        })
+      });
+    } catch(ignored) {}
 
     // Wait 3 seconds for AppScript to process, then show success
     setFProg(85, 'Saving to Google Drive…');
@@ -780,7 +782,9 @@ async function submitFaculty() {
     prog.classList.add('hidden');
     btn.disabled = false;
     btn.innerHTML = '📤 Submit Photographs';
-    err.textContent = 'Error: ' + e.message;
+    // Show meaningful error only if it's not an opaque no-cors response
+    const msg = e && e.message ? e.message : 'Upload failed. Please try again.';
+    err.textContent = msg;
     err.classList.remove('hidden');
   }
 }
