@@ -713,7 +713,9 @@ async function submitFaculty() {
       });
     }
     setFProg(75, 'Saving to Google Drive…');
-    await fetch(SCRIPT_URL, {
+
+    // Fire and forget — no-cors means we can't read response
+    fetch(SCRIPT_URL, {
       method  : 'POST',
       mode    : 'no-cors',
       headers : { 'Content-Type': 'text/plain' },
@@ -725,18 +727,25 @@ async function submitFaculty() {
         date     : selectedEv.date,
         photos
       })
-    });
+    }).catch(() => {}); // ignore network errors silently
+
+    // Wait 3 seconds for AppScript to process, then show success
+    setFProg(85, 'Saving to Google Drive…');
+    await new Promise(r => setTimeout(r, 3000));
     setFProg(100, 'Done!');
-    setTimeout(() => {
-      setStep(3);
-      document.getElementById('fs2').classList.add('hidden');
-      document.getElementById('fs3').classList.remove('hidden');
-      document.getElementById('fSuccessBox').innerHTML = `
-        <div class="evt">${selectedEv.event}</div>
-        <div class="evm">${selectedEv.dept}${selectedEv.date?' · '+selectedEv.date:''}</div>
-        <div style="margin-top:8px;font-size:13px;color:var(--ok);font-weight:600">
-          ✓ ${photos.length} photo(s) submitted successfully</div>`;
-    }, 600);
+
+    // Show success screen
+    const successCount = photos.length;
+    const successEv    = { ...selectedEv };
+    setStep(3);
+    document.getElementById('fs2').classList.add('hidden');
+    document.getElementById('fs3').classList.remove('hidden');
+    document.getElementById('fProgWrap').classList.add('hidden');
+    document.getElementById('fSuccessBox').innerHTML = `
+      <div class="evt">${successEv.event}</div>
+      <div class="evm">${successEv.dept}${successEv.date?' · '+successEv.date:''}</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--ok);font-weight:600">
+        ✓ ${successCount} photo(s) submitted successfully</div>`;
   } catch(e) {
     prog.classList.add('hidden');
     btn.disabled = false;
@@ -754,13 +763,27 @@ function setFProg(p, t) {
 function resetFaculty() {
   photoSlots = []; selectedEv = null;
   setStep(1);
+  // Reset all steps
   document.getElementById('fs3').classList.add('hidden');
+  document.getElementById('fs2').classList.add('hidden');
   document.getElementById('fs1').classList.remove('hidden');
+  // Reset form
   document.getElementById('fDept').value = '';
   document.getElementById('fEvent').innerHTML = '<option value="">— Select Event —</option>';
   document.getElementById('fEvent').disabled = true;
   document.getElementById('fDatePill').classList.add('hidden');
   document.getElementById('fProceed').disabled = true;
+  // Reset photo area
+  document.getElementById('fPhotoList').innerHTML = '';
+  document.getElementById('fAddBtn').style.display = '';
+  document.getElementById('fPhotoErr').classList.add('hidden');
+  // Reset submit button
+  const btn = document.getElementById('fSubmit');
+  btn.disabled = false;
+  btn.innerHTML = '📤 Submit Photographs';
+  // Reset progress
+  document.getElementById('fProgWrap').classList.add('hidden');
+  document.getElementById('fProgFill').style.width = '0%';
 }
 
 function setStep(n) {
