@@ -790,24 +790,8 @@ async function loadReport() {
 
   try {
     const res  = await fetch(`${SCRIPT_URL}?action=report`);
-    const text = await res.text();
-    console.log('Raw response length:', text.length);
-    console.log('First 500 chars:', text.substring(0, 500));
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch(pe) {
-      document.getElementById('reportContent').innerHTML =
-        `<div class="al ale">❌ Invalid response from AppScript:<br><pre style="font-size:11px;overflow:auto;max-height:200px">${text.substring(0,1000)}</pre></div>`;
-      return;
-    }
+    const data = await res.json();
     reportData = data.items || [];
-    console.log('Items received:', reportData.length);
-    if (reportData.length > 0) {
-      console.log('First item photos:', reportData[0].photos?.length);
-      console.log('First photo base64 length:', reportData[0].photos?.[0]?.base64?.length);
-      console.log('First photo mimeType:', reportData[0].photos?.[0]?.mimeType);
-    }
 
     if (!reportData.length) {
       document.getElementById('reportContent').innerHTML =
