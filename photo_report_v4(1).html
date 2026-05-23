@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCU — Department Event Photo Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --p:#1a73e8;--pd:#1557b0;--bg:#f8f9fa;--sur:#fff;
+  --brd:#dadce0;--txt:#202124;--mut:#5f6368;
+  --ok:#1e8e3e;--err:#d93025;--r:8px
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Google Sans',Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+input,select,button,textarea{font-family:inherit}
+.hidden{display:none!important}
+
+/* ── LOGIN ─────────────────────────────────────────── */
+#loginWrap{display:flex;align-items:center;justify-content:center;
+  min-height:100vh;background:linear-gradient(135deg,#003B73,#1a73e8)}
+.lcard{background:var(--sur);border-radius:16px;padding:44px;width:100%;
+  max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.llogo{text-align:center;margin-bottom:32px}
+.llogo .ico{font-size:52px}
+.llogo h1{font-size:22px;font-weight:700;color:var(--p);margin-top:10px}
+.llogo p{font-size:14px;color:var(--mut);margin-top:4px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:700;color:var(--mut);
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.fg input,.fg select{width:100%;padding:10px 12px;border:1.5px solid var(--brd);
+  border-radius:var(--r);font-size:14px;background:#fff;transition:border .15s}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--p);
+  box-shadow:0 0 0 3px rgba(26,115,232,.1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:var(--r);font-size:14px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;font-family:inherit}
+.bp{background:var(--p);color:#fff}.bp:hover:not(:disabled){background:var(--pd)}
+.bg{background:var(--ok);color:#fff}.bg:hover:not(:disabled){background:#166d35}
+.bo{background:#fff;color:var(--p);border:1.5px solid var(--p)}.bo:hover{background:#e8f0fe}
+.btn-full{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.errt{color:var(--err);font-size:13px;margin-top:6px}
+.hint{font-size:12px;color:#bbb;text-align:center;margin-top:16px;line-height:1.8}
+
+/* ── APP SHELL ─────────────────────────────────────── */
+#appShell{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--p);color:#fff;padding:0 20px;height:52px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.tb-title{font-size:15px;font-weight:600}
+.tb-right{display:flex;align-items:center;gap:14px;font-size:13px}
+.tb-right button{background:rgba(255,255,255,.18);border:none;color:#fff;
+  padding:5px 13px;border-radius:var(--r);cursor:pointer;font-size:13px}
+.tb-right button:hover{background:rgba(255,255,255,.32)}
+
+/* ── ADMIN LAYOUT ──────────────────────────────────── */
+.awrap{display:flex;flex:1;min-height:calc(100vh - 52px);overflow:hidden}
+.sidebar{width:220px;background:#201f1e;color:#c8c6c4;padding:12px 0;flex-shrink:0}
+.si{display:flex;align-items:center;gap:10px;padding:11px 18px;cursor:pointer;
+  font-size:14px;transition:background .12s;border-left:3px solid transparent;user-select:none}
+.si:hover{background:#292827;color:#fff}
+.si.active{background:#292827;color:#fff;border-left-color:var(--p)}
+.si .ico{width:20px;text-align:center}
+.main{flex:1;padding:26px;overflow-y:auto}
+.ptitle{font-size:20px;font-weight:700;margin-bottom:20px}
+
+/* ── CARDS ─────────────────────────────────────────── */
+.card{background:var(--sur);border-radius:8px;padding:22px;
+  box-shadow:0 1px 5px rgba(0,0,0,.08);margin-bottom:16px;border:1px solid var(--brd)}
+.card h3{font-size:15px;font-weight:600;margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid var(--brd)}
+
+/* ── STATS ─────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.sc{background:var(--sur);border-radius:8px;padding:18px 20px;
+  box-shadow:0 1px 5px rgba(0,0,0,.08);border-top:3px solid var(--p);border:1px solid var(--brd)}
+.sc .num{font-size:28px;font-weight:700;color:var(--p)}
+.sc .lbl{font-size:12px;color:var(--mut);margin-top:3px}
+
+/* ── ALERTS ────────────────────────────────────────── */
+.al{padding:11px 15px;border-radius:var(--r);font-size:14px;margin-bottom:14px;line-height:1.5}
+.ali{background:#e8f0fe;color:#174ea6;border-left:4px solid var(--p)}
+.als{background:#e6f4ea;color:#137333;border-left:4px solid var(--ok)}
+.ale{background:#fce8e6;color:#c5221f;border-left:4px solid var(--err)}
+.alw{background:#fff3cd;color:#856404;border-left:4px solid #ffc107}
+
+/* ── FACULTY UPLOAD PAGE ───────────────────────────── */
+.uview{max-width:640px;margin:0 auto}
+.steps{display:flex;align-items:center;margin-bottom:24px}
+.step{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.step.active{color:var(--p);font-weight:600}
+.step.done{color:var(--ok)}
+.sn{width:26px;height:26px;border-radius:50%;border:2px solid var(--brd);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;transition:all .3s}
+.step.active .sn{border-color:var(--p);background:var(--p);color:#fff}
+.step.done .sn{border-color:var(--ok);background:var(--ok);color:#fff}
+.sl{flex:1;height:2px;background:var(--brd);margin:0 8px;transition:background .3s}
+.sl.done{background:var(--ok)}
+.fg2{margin-bottom:16px}
+.fg2 label{display:block;font-size:12px;font-weight:700;color:var(--mut);
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.fg2 select{width:100%;padding:10px 12px;border:1.5px solid var(--brd);
+  border-radius:var(--r);font-size:14px;background:#fff;cursor:pointer;transition:border .15s}
+.fg2 select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(26,115,232,.1)}
+.fg2 select:disabled{background:#f1f3f4;color:var(--mut);cursor:default}
+.date-pill{display:inline-flex;align-items:center;gap:6px;background:#e8f0fe;
+  color:var(--p);border-radius:6px;padding:7px 12px;font-size:13px;
+  font-weight:600;margin-bottom:14px}
+.evbox{background:#e8f0fe;border:1.5px solid #c5d8fb;border-radius:10px;
+  padding:14px 18px;margin-bottom:14px}
+.evbox .evt{font-size:16px;font-weight:700;color:var(--p);margin-bottom:2px}
+.evbox .evm{font-size:13px;color:var(--mut)}
+
+/* Photo upload */
+.photo-add-btn{display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px;border:2px dashed var(--brd);border-radius:10px;
+  cursor:pointer;font-size:14px;font-weight:600;color:var(--p);
+  background:var(--sur);transition:all .2s;font-family:inherit}
+.photo-add-btn:hover{border-color:var(--p);background:#e8f0fe}
+.photo-list{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+.photo-item{display:flex;align-items:stretch;border:1.5px solid var(--p);
+  border-radius:10px;overflow:hidden;background:var(--sur)}
+.photo-thumb{width:110px;flex-shrink:0;position:relative;min-height:80px;background:var(--bg)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-rm{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.65);
+  color:#fff;border:none;border-radius:50%;width:22px;height:22px;
+  cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center}
+.photo-right{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.photo-label{font-size:11px;font-weight:700;color:var(--mut);
+  text-transform:uppercase;letter-spacing:.4px}
+.photo-caption{width:100%;padding:8px 10px;border:1.5px solid var(--brd);
+  border-radius:6px;font-size:13px;resize:none;transition:border .15s;line-height:1.5}
+.photo-caption:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(26,115,232,.1)}
+.photo-caption.err{border-color:var(--err)}
+.cap-err{font-size:11px;color:var(--err);display:none}
+
+/* Progress */
+.prog{width:100%;height:7px;background:#e0e0e0;border-radius:4px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;background:var(--p);border-radius:4px;transition:width .4s;width:0%}
+.spin{display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── ADMIN REPORT ──────────────────────────────────── */
+.report-actions{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.dept-section{margin-bottom:28px}
+.dept-heading{font-size:17px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;color:#1a1a1a;padding-bottom:8px;
+  border-bottom:2.5px solid #1a1a1a;margin-bottom:14px}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.grid-item{display:flex;flex-direction:column;gap:5px}
+.grid-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;
+  background:var(--bg);display:block}
+.grid-cap{font-size:12px;color:var(--mut);text-align:center;line-height:1.4;padding:0 2px}
+.event-label{font-size:13px;font-weight:600;color:var(--mut);
+  margin-bottom:8px;padding:6px 10px;background:#f8f9fa;
+  border-radius:6px;border-left:3px solid var(--p)}
+.empty{text-align:center;padding:60px 20px;color:var(--mut)}
+.empty .eico{font-size:48px;margin-bottom:12px}
+
+/* ── SETTINGS ──────────────────────────────────────── */
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stabs{display:flex;border-bottom:2px solid var(--brd);margin-bottom:20px}
+.stab{padding:9px 18px;cursor:pointer;font-size:14px;font-weight:500;
+  color:var(--mut);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.stab:hover{color:var(--p)}
+.stab.active{color:var(--p);border-bottom-color:var(--p);font-weight:600}
+.setup-row{display:flex;gap:10px;align-items:flex-end}
+.setup-row input{flex:1;padding:9px 12px;border:1.5px solid var(--brd);
+  border-radius:var(--r);font-size:13px;font-family:monospace}
+.setup-row input:focus{outline:none;border-color:var(--p)}
+.divider{border:none;border-top:1px solid var(--brd);margin:18px 0}
+.badge{display:inline-flex;align-items:center;gap:4px;background:#e8f0fe;
+  color:var(--p);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ═══════════════════════════════════════ -->
+<div id="loginWrap">
+  <div class="lcard">
+    <div class="llogo">
+      <div class="ico">🎓</div>
+      <h1>Garden City University</h1>
+      <p>Department Event Photo Report</p>
+    </div>
+    <div class="fg">
+      <label>Access Role</label>
+      <select id="lRole">
+        <option value="faculty">Faculty / User</option>
+        <option value="admin">Administrator</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <input type="password" id="lPass" placeholder="Enter your password"
+        onkeypress="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="lErr" class="errt hidden"></div>
+    <button class="btn bp btn-full" style="margin-top:10px;padding:11px" onclick="doLogin()">
+      Sign In →
+    </button>
+    <p class="hint">Faculty: <b>gcu2024</b> &nbsp;·&nbsp; Admin: <b>gcuadmin</b><br>
+      <span style="font-size:11px">Change in Admin → Settings</span></p>
+  </div>
+</div>
+
+<!-- ═══ APP SHELL ════════════════════════════════════ -->
+<div id="appShell">
+  <div class="topbar">
+    <span class="tb-title">🎓 GCU — Department Event Photo Report</span>
+    <div class="tb-right">
+      <span id="topRole"></span>
+      <button onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- ── FACULTY VIEW ─────────────────────────────── -->
+  <div id="viewFaculty" class="hidden">
+    <div class="main" style="background:var(--bg)">
+      <div class="uview">
+
+        <div class="steps" style="margin-bottom:20px">
+          <div class="step active" id="stp1"><div class="sn" id="sn1">1</div><span>Select Event</span></div>
+          <div class="sl" id="sl1"></div>
+          <div class="step" id="stp2"><div class="sn" id="sn2">2</div><span>Upload Photos</span></div>
+          <div class="sl" id="sl2"></div>
+          <div class="step" id="stp3"><div class="sn" id="sn3">3</div><span>Done</span></div>
+        </div>
+
+        <!-- Step 1 -->
+        <div id="fs1">
+          <div class="card">
+            <h3>🎯 Select Your Event</h3>
+            <div id="evLoadMsg" class="al ali">⏳ Loading events…</div>
+            <div id="evLoadErr" class="al ale hidden"></div>
+            <div id="evSelWrap" class="hidden">
+              <div class="fg2">
+                <label>Department</label>
+                <select id="fDept" onchange="onFDept()">
+                  <option value="">— Select Department —</option>
+                </select>
+              </div>
+              <div class="fg2">
+                <label>Event</label>
+                <select id="fEvent" onchange="onFEvent()" disabled>
+                  <option value="">— Select Event —</option>
+                </select>
+              </div>
+              <div id="fDatePill" class="date-pill hidden">📅 <span id="fDateVal"></span></div>
+              <button class="btn bp btn-full" id="fProceed" onclick="goStep2()" disabled>
+                Continue to Upload Photos →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div id="fs2" class="hidden">
+          <div class="card">
+            <div class="evbox" id="fEvBox"></div>
+            <h3 style="border:none;padding:0;margin-bottom:8px">📷 Upload Photographs</h3>
+            <p style="font-size:14px;color:var(--mut);margin-bottom:14px">
+              Add 1–5 geo-tagged photos. Caption auto-fills with filename — edit as needed.</p>
+            <div class="al ali" style="font-size:13px;margin-bottom:14px">
+              💡 Good caption: <em>"Chief Guest Dr. Ramesh inaugurating the workshop"</em>
+            </div>
+            <label class="photo-add-btn" id="fAddBtn">
+              <input type="file" id="fPhotoFile" accept="image/*" multiple
+                style="display:none" onchange="onPhotoSelect(this)">
+              <span style="font-size:18px">📷</span> Add Photos (up to 5)
+            </label>
+            <div class="photo-list" id="fPhotoList"></div>
+            <div id="fPhotoErr" class="al ale hidden"></div>
+          </div>
+          <button class="btn bg btn-full" id="fSubmit"
+            style="font-size:15px;padding:13px" onclick="submitFaculty()">
+            📤 Submit Photographs
+          </button>
+          <div id="fProgWrap" class="hidden" style="margin-top:14px">
+            <p style="font-size:14px;color:var(--mut)" id="fProgTxt">Uploading…</p>
+            <div class="prog"><div class="prog-fill" id="fProgFill"></div></div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div id="fs3" class="hidden">
+          <div class="card" style="text-align:center;padding:40px">
+            <div style="font-size:64px;margin-bottom:16px">✅</div>
+            <h2 style="font-size:20px;margin-bottom:8px">Photos Submitted!</h2>
+            <p style="color:var(--mut);margin-bottom:20px">
+              Your photographs have been saved to Google Drive successfully.</p>
+            <div class="evbox" id="fSuccessBox" style="text-align:left;margin-bottom:24px"></div>
+            <button class="btn bp" onclick="resetFaculty()">Upload for Another Event</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADMIN VIEW ────────────────────────────────── -->
+  <div id="viewAdmin" class="awrap hidden">
+    <div class="sidebar">
+      <div style="padding:16px 20px 8px;font-size:11px;font-weight:700;
+        color:#5f6368;text-transform:uppercase;letter-spacing:.6px">Menu</div>
+      <div class="si active" id="t-dash"     onclick="aTab('dash')">
+        <span class="ico">📊</span> Dashboard</div>
+      <div class="si"        id="t-report"   onclick="aTab('report')">
+        <span class="ico">🖼️</span> Photo Report</div>
+      <div class="si"        id="t-settings" onclick="aTab('settings')">
+        <span class="ico">⚙️</span> Settings</div>
+    </div>
+
+    <div class="main">
+
+      <!-- DASHBOARD -->
+      <div id="p-dash">
+        <div class="ptitle">Dashboard</div>
+        <div class="stats">
+          <div class="sc"><div class="num" id="st0">—</div><div class="lbl">Departments</div></div>
+          <div class="sc"><div class="num" id="st1">—</div><div class="lbl">Events with Photos</div></div>
+          <div class="sc"><div class="num" id="st2">—</div><div class="lbl">Total Photos</div></div>
+        </div>
+        <div class="card">
+          <h3>📋 How it works</h3>
+          <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:1.7">
+            <div>📝 <b>Faculty:</b> Log in → select their Department &amp; Event →
+              upload geo-tagged photos → captions auto-fill from filenames</div>
+            <div>☁️ <b>Storage:</b> Photos saved to Google Drive automatically,
+              organised by Department → Event</div>
+            <div>📄 <b>Admin:</b> Go to Photo Report → Refresh → preview all submissions
+              → Download .docx report</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>🔄 Quick Actions</h3>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn bp" onclick="aTab('report');loadReport()">
+              🖼️ Load Photo Report
+            </button>
+            <button class="btn bo" onclick="aTab('settings')">
+              ⚙️ Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHOTO REPORT -->
+      <div id="p-report" class="hidden">
+        <div class="ptitle">Photo Report</div>
+        <div class="report-actions">
+          <button class="btn bp" onclick="loadReport()" id="refreshBtn">
+            🔄 Refresh
+          </button>
+          <button class="btn bg" onclick="generateDocx()" id="genBtn" disabled>
+            ⬇ Download .docx
+          </button>
+          <span id="reportBadge" class="badge hidden"></span>
+        </div>
+        <div id="genProgWrap" class="hidden" style="margin-bottom:16px">
+          <p style="font-size:14px;color:var(--mut)" id="genTxt">Building report…</p>
+          <div class="prog"><div class="prog-fill" id="genFill"></div></div>
+        </div>
+        <div id="reportContent">
+          <div class="empty">
+            <div class="eico">🖼️</div>
+            <p style="font-weight:600;margin-bottom:6px">No data loaded</p>
+            <p>Click Refresh to load all photo submissions.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="p-settings" class="hidden">
+        <div class="ptitle">Settings</div>
+        <div class="stabs">
+          <div class="stab active" id="st-conn"  onclick="sstab('conn')">🔗 Connection</div>
+          <div class="stab"        id="st-pw"    onclick="sstab('pw')">🔑 Passwords</div>
+        </div>
+
+        <!-- Connection -->
+        <div id="sp-conn">
+          <div class="card">
+            <h3>🔗 AppScript Web App URL</h3>
+            <div class="al ali" style="font-size:13px;margin-bottom:12px">
+              Paste your deployed AppScript URL here. This connects to your
+              Google Sheet and saves photos to Google Drive.
+            </div>
+            <div class="setup-row">
+              <input type="url" id="scriptUrlInp"
+                placeholder="https://script.google.com/macros/s/…/exec">
+              <button class="btn bp" onclick="saveConfig()">Save</button>
+              <button class="btn bo" onclick="testConfig()">🧪 Test</button>
+            </div>
+            <div id="configMsg" class="al hidden" style="margin-top:10px"></div>
+          </div>
+          <div class="card">
+            <h3>📋 Setup Guide</h3>
+            <div style="font-size:14px;line-height:1.8;counter-reset:s">
+              <div style="display:flex;gap:12px;margin-bottom:10px">
+                <div style="background:var(--p);color:#fff;border-radius:50%;
+                  width:24px;height:24px;display:flex;align-items:center;
+                  justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+                <div>Create a Google Sheet from your Excel file →
+                  <b>File → Import → upload .xlsx</b></div>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:10px">
+                <div style="background:var(--p);color:#fff;border-radius:50%;
+                  width:24px;height:24px;display:flex;align-items:center;
+                  justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div>
+                <div>In that Sheet → <b>Extensions → Apps Script</b> →
+                  paste <code style="background:#f1f3f4;padding:1px 5px;border-radius:3px">
+                  AppScript_PhotoReport_v2.gs</code></div>
+              </div>
+              <div style="display:flex;gap:12px;margin-bottom:10px">
+                <div style="background:var(--p);color:#fff;border-radius:50%;
+                  width:24px;height:24px;display:flex;align-items:center;
+                  justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+                <div>Run <b>requestPermissions</b> → Allow →
+                  then <b>Deploy → New deployment → Web App → Anyone</b></div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="background:var(--p);color:#fff;border-radius:50%;
+                  width:24px;height:24px;display:flex;align-items:center;
+                  justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div>
+                <div>Copy the Web App URL → paste above → Save → Test ✅</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Passwords -->
+        <div id="sp-pw" class="hidden">
+          <div class="card">
+            <h3>🔑 Change Passwords</h3>
+            <div class="twocol" style="margin-bottom:12px">
+              <div class="fg">
+                <label>Faculty Password</label>
+                <input type="password" id="pwUser" placeholder="New faculty password">
+              </div>
+              <div class="fg">
+                <label>Admin Password</label>
+                <input type="password" id="pwAdmin" placeholder="New admin password">
+              </div>
+            </div>
+            <button class="btn bp" onclick="changePw()">Update Passwords</button>
+            <div id="pwMsg" class="al hidden" style="margin-top:10px"></div>
+          </div>
+        </div>
+
+      </div><!-- /settings -->
+    </div><!-- /main -->
+  </div><!-- /admin wrap -->
+</div><!-- /appShell -->
+
+<script>
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let SCRIPT_URL  = localStorage.getItem('gcuPRUrl') || 'https://script.google.com/macros/s/AKfycbyeNM0wTxZFlCGJGIinEuI3sKgMxVKF6dxM9y5QPF6HWatQf9UMEFmFDtE1Meo8sfkL/exec';
+let PASSWORDS   = JSON.parse(localStorage.getItem('gcuPRPw') || '{"user":"gcu2024","admin":"gcuadmin"}');
+let eventsData  = { depts: [], events: [] };
+let photoSlots  = [];
+let selectedEv  = null;
+let reportData  = [];
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+function doLogin() {
+  const role = document.getElementById('lRole').value;
+  const pass = document.getElementById('lPass').value;
+  const err  = document.getElementById('lErr');
+  const expected = role === 'admin' ? PASSWORDS.admin : PASSWORDS.user;
+
+  if (pass !== expected) {
+    err.textContent = 'Incorrect password.';
+    err.classList.remove('hidden'); return;
+  }
+  err.classList.add('hidden');
+
+  document.getElementById('loginWrap').style.display   = 'none';
+  document.getElementById('appShell').style.display    = 'flex';
+  document.getElementById('appShell').style.flexDirection = 'column';
+  document.getElementById('topRole').textContent = role === 'admin' ? '👤 Admin' : '👤 Faculty';
+
+  if (role === 'admin') {
+    document.getElementById('viewAdmin').classList.remove('hidden');
+    document.getElementById('scriptUrlInp').value = SCRIPT_URL;
+    loadDashStats();
+  } else {
+    document.getElementById('viewFaculty').classList.remove('hidden');
+    initFaculty();
+  }
+}
+function doLogout() { location.reload(); }
+
+// ════════════════════════════════════════════════════════
+// ADMIN NAV
+// ════════════════════════════════════════════════════════
+const ATABS = ['dash','report','settings'];
+function aTab(id) {
+  ATABS.forEach(t => {
+    document.getElementById('p-'+t).classList.add('hidden');
+    document.getElementById('t-'+t).classList.remove('active');
+  });
+  document.getElementById('p-'+id).classList.remove('hidden');
+  document.getElementById('t-'+id).classList.add('active');
+}
+function sstab(id) {
+  ['conn','pw'].forEach(s => {
+    document.getElementById('sp-'+s).classList.add('hidden');
+    document.getElementById('st-'+s).classList.remove('active');
+  });
+  document.getElementById('sp-'+id).classList.remove('hidden');
+  document.getElementById('st-'+id).classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════
+// DASHBOARD STATS
+// ════════════════════════════════════════════════════════
+async function loadDashStats() {
+  if (!SCRIPT_URL) return;
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=report`);
+    const data = await res.json();
+    reportData = data.items || [];
+    const depts  = new Set(reportData.map(r => r.dept)).size;
+    const photos = reportData.reduce((s, r) => s + r.photos.length, 0);
+    document.getElementById('st0').textContent = depts;
+    document.getElementById('st1').textContent = reportData.length;
+    document.getElementById('st2').textContent = photos;
+  } catch(e) {
+    ['st0','st1','st2'].forEach(id =>
+      document.getElementById(id).textContent = '—');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// FACULTY VIEW
+// ════════════════════════════════════════════════════════
+async function initFaculty() {
+  if (!SCRIPT_URL) {
+    document.getElementById('evLoadMsg').classList.add('hidden');
+    document.getElementById('evLoadErr').textContent =
+      'This page is not configured yet. Contact your administrator.';
+    document.getElementById('evLoadErr').classList.remove('hidden');
+    return;
+  }
+  await loadEvents();
+}
+
+async function loadEvents() {
+  document.getElementById('evLoadMsg').classList.remove('hidden');
+  document.getElementById('evLoadErr').classList.add('hidden');
+  document.getElementById('evSelWrap').classList.add('hidden');
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=events`);
+    const data = await res.json();
+    eventsData = data;
+
+    const dd = document.getElementById('fDept');
+    dd.innerHTML = '<option value="">— Select Department —</option>';
+    (data.depts || []).forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d; dd.appendChild(o);
+    });
+
+    document.getElementById('evLoadMsg').classList.add('hidden');
+    document.getElementById('evSelWrap').classList.remove('hidden');
+  } catch(e) {
+    document.getElementById('evLoadMsg').classList.add('hidden');
+    document.getElementById('evLoadErr').textContent = 'Could not load events: ' + e.message;
+    document.getElementById('evLoadErr').classList.remove('hidden');
+  }
+}
+
+function onFDept() {
+  const dept = document.getElementById('fDept').value;
+  const ev   = document.getElementById('fEvent');
+  ev.innerHTML = '<option value="">— Select Event —</option>';
+  ev.disabled  = !dept;
+  document.getElementById('fDatePill').classList.add('hidden');
+  document.getElementById('fProceed').disabled = true;
+  if (!dept) return;
+
+  const filtered = (eventsData.events || []).filter(e => e.dept === dept);
+  filtered.forEach(e => {
+    const o = document.createElement('option');
+    o.value = JSON.stringify(e);
+    o.textContent = e.event; ev.appendChild(o);
+  });
+}
+
+function onFEvent() {
+  const ev  = document.getElementById('fEvent');
+  const dp  = document.getElementById('fDatePill');
+  const pr  = document.getElementById('fProceed');
+  if (!ev.value) { dp.classList.add('hidden'); pr.disabled=true; return; }
+
+  selectedEv = JSON.parse(ev.value);
+  document.getElementById('fDateVal').textContent = selectedEv.date || 'No date';
+  dp.classList.remove('hidden');
+  pr.disabled = false;
+}
+
+function goStep2() {
+  setStep(2);
+  document.getElementById('fs1').classList.add('hidden');
+  document.getElementById('fs2').classList.remove('hidden');
+  document.getElementById('fEvBox').innerHTML =
+    `<div class="evt">${selectedEv.event}</div>
+     <div class="evm">${selectedEv.dept}${selectedEv.date?' · '+selectedEv.date:''}</div>`;
+  photoSlots = [];
+  document.getElementById('fPhotoList').innerHTML = '';
+  document.getElementById('fAddBtn').style.display = '';
+}
+
+function onPhotoSelect(inp) {
+  const files = Array.from(inp.files);
+  const err   = document.getElementById('fPhotoErr');
+  err.classList.add('hidden');
+  const room = 5 - photoSlots.length;
+  if (room <= 0) {
+    err.textContent = 'Maximum 5 photos allowed.';
+    err.classList.remove('hidden'); return;
+  }
+  files.slice(0, room).forEach(f => {
+    const cap = f.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+    photoSlots.push({ file: f, caption: cap, url: URL.createObjectURL(f) });
+  });
+  if (files.length > room) {
+    err.textContent = `Only ${room} more allowed. Extra files ignored.`;
+    err.classList.remove('hidden');
+  }
+  renderPhotoList();
+  inp.value = '';
+  if (photoSlots.length >= 5) document.getElementById('fAddBtn').style.display = 'none';
+}
+
+function renderPhotoList() {
+  const list = document.getElementById('fPhotoList');
+  list.innerHTML = '';
+  photoSlots.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-item';
+    div.innerHTML = `
+      <div class="photo-thumb">
+        <img src="${s.url}" alt="Photo ${i+1}">
+        <button class="photo-rm" onclick="removePhoto(${i})">×</button>
+      </div>
+      <div class="photo-right">
+        <div class="photo-label">Photo ${i+1}</div>
+        <textarea class="photo-caption" id="pcap${i}" rows="2"
+          oninput="photoSlots[${i}].caption=this.value;
+                   this.classList.remove('err');
+                   document.getElementById('perr${i}').style.display='none'"
+        >${s.caption}</textarea>
+        <div class="cap-err" id="perr${i}">Caption is required</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function removePhoto(i) {
+  URL.revokeObjectURL(photoSlots[i].url);
+  photoSlots.splice(i, 1);
+  renderPhotoList();
+  document.getElementById('fAddBtn').style.display = '';
+}
+
+async function submitFaculty() {
+  const err = document.getElementById('fPhotoErr');
+  err.classList.add('hidden');
+  if (!photoSlots.length) {
+    err.textContent = 'Please add at least one photograph.';
+    err.classList.remove('hidden'); return;
+  }
+  let ok = true;
+  photoSlots.forEach((s, i) => {
+    const ce = document.getElementById(`pcap${i}`);
+    s.caption = (ce?.value || '').trim();
+    if (!s.caption) {
+      ce.classList.add('err');
+      document.getElementById(`perr${i}`).style.display = 'block';
+      ok = false;
+    }
+  });
+  if (!ok) {
+    err.textContent = 'Please fill captions for all photos.';
+    err.classList.remove('hidden'); return;
+  }
+
+  const prog = document.getElementById('fProgWrap');
+  const btn  = document.getElementById('fSubmit');
+  prog.classList.remove('hidden');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Uploading…';
+
+  try {
+    const photos = [];
+    for (let i = 0; i < photoSlots.length; i++) {
+      const s = photoSlots[i];
+      setFProg(10 + Math.floor(i/photoSlots.length*60), `Processing photo ${i+1}…`);
+      photos.push({
+        base64   : await toB64(s.file),
+        mimeType : s.file.type || 'image/jpeg',
+        caption  : s.caption
+      });
+    }
+    setFProg(75, 'Saving to Google Drive…');
+    await fetch(SCRIPT_URL, {
+      method  : 'POST',
+      mode    : 'no-cors',
+      headers : { 'Content-Type': 'text/plain' },
+      body    : JSON.stringify({
+        action   : 'submit',
+        rowIndex : selectedEv.rowIndex,
+        dept     : selectedEv.dept,
+        event    : selectedEv.event,
+        date     : selectedEv.date,
+        photos
+      })
+    });
+    setFProg(100, 'Done!');
+    setTimeout(() => {
+      setStep(3);
+      document.getElementById('fs2').classList.add('hidden');
+      document.getElementById('fs3').classList.remove('hidden');
+      document.getElementById('fSuccessBox').innerHTML = `
+        <div class="evt">${selectedEv.event}</div>
+        <div class="evm">${selectedEv.dept}${selectedEv.date?' · '+selectedEv.date:''}</div>
+        <div style="margin-top:8px;font-size:13px;color:var(--ok);font-weight:600">
+          ✓ ${photos.length} photo(s) submitted successfully</div>`;
+    }, 600);
+  } catch(e) {
+    prog.classList.add('hidden');
+    btn.disabled = false;
+    btn.innerHTML = '📤 Submit Photographs';
+    err.textContent = 'Error: ' + e.message;
+    err.classList.remove('hidden');
+  }
+}
+
+function setFProg(p, t) {
+  document.getElementById('fProgFill').style.width = p + '%';
+  document.getElementById('fProgTxt').textContent  = t;
+}
+
+function resetFaculty() {
+  photoSlots = []; selectedEv = null;
+  setStep(1);
+  document.getElementById('fs3').classList.add('hidden');
+  document.getElementById('fs1').classList.remove('hidden');
+  document.getElementById('fDept').value = '';
+  document.getElementById('fEvent').innerHTML = '<option value="">— Select Event —</option>';
+  document.getElementById('fEvent').disabled = true;
+  document.getElementById('fDatePill').classList.add('hidden');
+  document.getElementById('fProceed').disabled = true;
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const s  = document.getElementById(`stp${i}`);
+    const sn = document.getElementById(`sn${i}`);
+    s.classList.remove('active','done');
+    if (i < n)  { s.classList.add('done');  sn.textContent='✓'; }
+    if (i === n) s.classList.add('active');
+  });
+  [1,2].forEach(i =>
+    document.getElementById(`sl${i}`).classList.toggle('done', i < n));
+}
+
+// ════════════════════════════════════════════════════════
+// ADMIN REPORT
+// ════════════════════════════════════════════════════════
+async function loadReport() {
+  if (!SCRIPT_URL) {
+    document.getElementById('reportContent').innerHTML =
+      `<div class="al ale">No AppScript URL configured. Go to Settings → Connection.</div>`;
+    return;
+  }
+  document.getElementById('reportContent').innerHTML =
+    `<div class="al ali">⏳ Loading report… please wait.</div>`;
+  document.getElementById('genBtn').disabled = true;
+
+  try {
+    const res  = await fetch(`${SCRIPT_URL}?action=report`);
+    const text = await res.text();
+    console.log('Raw response length:', text.length);
+    console.log('First 500 chars:', text.substring(0, 500));
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(pe) {
+      document.getElementById('reportContent').innerHTML =
+        `<div class="al ale">❌ Invalid response from AppScript:<br><pre style="font-size:11px;overflow:auto;max-height:200px">${text.substring(0,1000)}</pre></div>`;
+      return;
+    }
+    reportData = data.items || [];
+    console.log('Items received:', reportData.length);
+    if (reportData.length > 0) {
+      console.log('First item photos:', reportData[0].photos?.length);
+      console.log('First photo base64 length:', reportData[0].photos?.[0]?.base64?.length);
+      console.log('First photo mimeType:', reportData[0].photos?.[0]?.mimeType);
+    }
+
+    if (!reportData.length) {
+      document.getElementById('reportContent').innerHTML =
+        `<div class="empty"><div class="eico">📭</div>
+         <p style="font-weight:600;margin-bottom:6px">No submissions yet</p>
+         <p>Faculty need to upload photos first.</p></div>`;
+      return;
+    }
+
+    renderReport();
+    document.getElementById('genBtn').disabled = false;
+    const total  = reportData.reduce((s,r)=>s+r.photos.length, 0);
+    const badge  = document.getElementById('reportBadge');
+    badge.textContent = `${reportData.length} event(s) · ${total} photo(s)`;
+    badge.classList.remove('hidden');
+
+    // Update dashboard stats
+    const depts = new Set(reportData.map(r=>r.dept)).size;
+    document.getElementById('st0').textContent = depts;
+    document.getElementById('st1').textContent = reportData.length;
+    document.getElementById('st2').textContent = total;
+
+  } catch(e) {
+    document.getElementById('reportContent').innerHTML =
+      `<div class="al ale">❌ Error: ${e.message}</div>`;
+  }
+}
+
+function renderReport() {
+  const byDept = {};
+  reportData.forEach(item => {
+    if (!byDept[item.dept]) byDept[item.dept] = [];
+    byDept[item.dept].push(item);
+  });
+
+  let html = '';
+  Object.entries(byDept).forEach(([dept, items]) => {
+    html += `<div class="dept-section">
+      <div class="dept-heading">DEPARTMENT OF ${dept.toUpperCase()}</div>`;
+    items.forEach(item => {
+      html += `<div style="margin-bottom:20px">
+        <div class="event-label">${item.event}${item.date?' — '+item.date:''}</div>
+        <div class="photo-grid">`;
+      item.photos.forEach(ph => {
+        const src = `data:${ph.mimeType};base64,${ph.base64}`;
+        html += `<div class="grid-item">
+          <img class="grid-img" src="${src}" alt="${ph.caption}" loading="lazy">
+          <div class="grid-cap">${ph.caption}</div>
+        </div>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+  });
+
+  document.getElementById('reportContent').innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════
+// DOCX GENERATION
+// ════════════════════════════════════════════════════════
+async function generateDocx() {
+  if (!reportData.length) return;
+  const btn  = document.getElementById('genBtn');
+  const prog = document.getElementById('genProgWrap');
+  btn.disabled = true;
+  prog.classList.remove('hidden');
+
+  try {
+    const zip = new JSZip();
+    const byDept = {};
+    reportData.forEach(item => {
+      if (!byDept[item.dept]) byDept[item.dept] = [];
+      byDept[item.dept].push(item);
+    });
+    const depts = Object.keys(byDept);
+
+    // Collect images from base64 data (already in memory)
+    setGProg(10, 'Processing images…');
+    const imgs = []; const itemRanges = [];
+
+    for (const dept of depts) {
+      for (const item of byDept[dept]) {
+        const start = imgs.length;
+        item.photos.forEach(ph => {
+          // Normalize mime and ext
+          const mime = ph.mimeType || 'image/jpeg';
+          let   ext  = mime.split('/')[1] || 'jpeg';
+          if (ext === 'jpg' || ext === 'JPG') ext = 'jpeg';
+          if (ext === 'PNG') ext = 'png';
+          if (!['jpeg','png','gif'].includes(ext)) ext = 'jpeg';
+          imgs.push({
+            b64     : ph.base64,
+            ext,
+            mime,
+            caption : ph.caption || '',
+            rId     : `rImg${imgs.length}`
+          });
+        });
+        itemRanges.push([start, imgs.length]);
+      }
+    }
+
+    setGProg(70, 'Building document…');
+
+    const tblW=9360, cols=3, colTw=Math.floor(tblW/cols);
+    const imgW=Math.floor((colTw-80)*635), imgH=Math.floor(imgW*0.75);
+    let body=''; let ri=0;
+
+    depts.forEach((dept,di)=>{
+      if(di>0) body+=`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+      body+=`
+      <w:p><w:pPr><w:spacing w:before="0" w:after="120"/></w:pPr>
+        <w:r><w:rPr><w:b/><w:sz w:val="32"/><w:caps/>
+          <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>
+          <w:color w:val="1a1a1a"/></w:rPr>
+          <w:t>DEPARTMENT OF ${X(dept.toUpperCase())}</w:t></w:r></w:p>
+      <w:p><w:pPr><w:spacing w:before="0" w:after="180"/>
+        <w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="1a1a1a"/></w:pBdr>
+      </w:pPr></w:p>`;
+
+      byDept[dept].forEach(item=>{
+        const [rS,rE]=itemRanges[ri++];
+        const evImgs=imgs.slice(rS,rE);
+        if(!evImgs.length) return;
+
+        for(let r=0;r<evImgs.length;r+=cols){
+          const chunk=evImgs.slice(r,r+cols);
+          body+=`<w:tbl><w:tblPr><w:tblW w:w="${tblW}" w:type="dxa"/>
+            <w:tblBorders><w:top w:val="none"/><w:left w:val="none"/>
+              <w:bottom w:val="none"/><w:right w:val="none"/>
+              <w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders>
+            <w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="40" w:type="dxa"/>
+              <w:bottom w:w="40" w:type="dxa"/><w:right w:w="40" w:type="dxa"/>
+            </w:tblCellMar></w:tblPr><w:tr>`;
+
+          for(let c=0;c<cols;c++){
+            const img=chunk[c]; const ai=img?imgs.indexOf(img):-1;
+            body+=`<w:tc><w:tcPr><w:tcW w:w="${colTw}" w:type="dxa"/></w:tcPr>
+              <w:p><w:pPr><w:jc w:val="center"/></w:pPr>`;
+            if(img){
+              body+=`<w:r><w:drawing>
+                <wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+                  distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="${imgW}" cy="${imgH}"/>
+                  <wp:effectExtent l="0" t="0" r="0" b="0"/>
+                  <wp:docPr id="${ai+1}" name="Img${ai+1}"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="${ai+1}" name="Img${ai+1}"/>
+                          <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="${img.rId}"
+                            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+                          <a:stretch><a:fillRect/></a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr>
+                          <a:xfrm><a:off x="0" y="0"/>
+                            <a:ext cx="${imgW}" cy="${imgH}"/></a:xfrm>
+                          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing></w:r>`;
+            }
+            body+=`</w:p></w:tc>`;
+          }
+          body+=`</w:tr></w:tbl>`;
+
+          // Caption row
+          body+=`<w:tbl><w:tblPr><w:tblW w:w="${tblW}" w:type="dxa"/>
+            <w:tblBorders><w:top w:val="none"/><w:left w:val="none"/>
+              <w:bottom w:val="none"/><w:right w:val="none"/>
+              <w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders>
+            <w:tblCellMar><w:top w:w="20" w:type="dxa"/><w:left w:w="40" w:type="dxa"/>
+              <w:bottom w:w="80" w:type="dxa"/><w:right w:w="40" w:type="dxa"/>
+            </w:tblCellMar></w:tblPr><w:tr>`;
+          for(let c=0;c<cols;c++){
+            const img=chunk[c]; const cap=img?img.caption:'';
+            body+=`<w:tc><w:tcPr><w:tcW w:w="${colTw}" w:type="dxa"/></w:tcPr>
+              <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:after="0"/></w:pPr>
+              ${cap?`<w:r><w:rPr><w:sz w:val="18"/>
+                <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>
+                <w:color w:val="444444"/></w:rPr>
+                <w:t>${X(cap)}</w:t></w:r>`:''}
+              </w:p></w:tc>`;
+          }
+          body+=`</w:tr></w:tbl>`;
+        }
+        body+=`<w:p><w:pPr><w:spacing w:after="100"/></w:pPr><w:r><w:t></w:t></w:r></w:p>`;
+      });
+    });
+
+    setGProg(88, 'Assembling file…');
+
+    const extSet=([...new Set(imgs.map(i=>i.ext))]);
+    const defTypes=extSet.map(ext=>{
+      const ct=ext==='png'?'image/png':ext==='gif'?'image/gif':'image/jpeg';
+      return `<Default Extension="${ext}" ContentType="${ct}"/>`;
+    }).join('\n  ');
+
+    zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  ${defTypes}
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+</Types>`);
+    zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`);
+    const wf=zip.folder('word');
+    wf.file('_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+  ${imgs.map(img=>`<Relationship Id="${img.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${img.rId}.${img.ext}"/>`).join('\n  ')}
+</Relationships>`);
+    wf.file('document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+  xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  mc:Ignorable="w14 wp14">
+  <w:body>
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"
+               w:header="360" w:footer="360" w:gutter="0"/>
+    </w:sectPr>
+    ${body}
+  </w:body>
+</w:document>`);
+    wf.file('styles.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults><w:rPrDefault><w:rPr>
+    <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>
+    <w:sz w:val="20"/><w:szCs w:val="20"/>
+  </w:rPr></w:rPrDefault></w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
+  <w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style>
+</w:styles>`);
+    wf.file('settings.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:defaultTabStop w:val="708"/>
+  <w:compat><w:compatSetting w:name="compatibilityMode"
+    w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat>
+</w:settings>`);
+    const mf=wf.folder('media');
+    imgs.forEach(img => {
+      // Ensure base64 string is clean (no data URL prefix)
+      const b64clean = img.b64.includes(',') ? img.b64.split(',')[1] : img.b64;
+      mf.file(`${img.rId}.${img.ext}`, b64clean, {base64:true});
+    });
+
+    setGProg(97,'Downloading…');
+    const blob=await zip.generateAsync({type:'blob'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`GCU_Photo_Report_${new Date().toISOString().slice(0,10)}.docx`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    setGProg(100,'✅ Report downloaded!');
+    setTimeout(()=>{
+      document.getElementById('genProgWrap').classList.add('hidden');
+      btn.disabled=false;
+    },3000);
+
+  } catch(e) {
+    setGProg(0,'❌ Error: '+e.message);
+    console.error(e);
+    btn.disabled=false;
+  }
+}
+
+function setGProg(p,t){
+  document.getElementById('genFill').style.width=p+'%';
+  document.getElementById('genTxt').textContent=t;
+}
+
+// ════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════
+function saveConfig(){
+  const url=document.getElementById('scriptUrlInp').value.trim();
+  const msg=document.getElementById('configMsg');
+  if(!url){showMsg(msg,'⚠ Enter a URL.','alw');return;}
+  SCRIPT_URL=url;
+  localStorage.setItem('gcuPRUrl',url);
+  showMsg(msg,'✅ URL saved.','als');
+}
+async function testConfig(){
+  const url=document.getElementById('scriptUrlInp').value.trim();
+  const msg=document.getElementById('configMsg');
+  if(!url){showMsg(msg,'⚠ Enter URL first.','alw');return;}
+  showMsg(msg,'⏳ Testing…','ali');
+  try{
+    const res=await fetch(`${url}?action=events`);
+    const data=await res.json();
+    showMsg(msg,`✅ Connected! ${(data.depts||[]).length} dept(s), ${(data.events||[]).length} event(s).`,'als');
+    SCRIPT_URL=url;
+    localStorage.setItem('gcuPRUrl',url);
+  }catch(e){showMsg(msg,'❌ Failed: '+e.message,'ale');}
+}
+function changePw(){
+  const u=document.getElementById('pwUser').value.trim();
+  const a=document.getElementById('pwAdmin').value.trim();
+  if(!u&&!a){alert('Enter at least one password.');return;}
+  if(u) PASSWORDS.user=u;
+  if(a) PASSWORDS.admin=a;
+  localStorage.setItem('gcuPRPw',JSON.stringify(PASSWORDS));
+  document.getElementById('pwUser').value='';
+  document.getElementById('pwAdmin').value='';
+  showMsg(document.getElementById('pwMsg'),'✅ Passwords updated.','als');
+}
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+function toB64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+function toB64Blob(blob){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(blob);
+  });
+}
+function X(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showMsg(el,msg,cls){
+  el.className='al '+cls;el.textContent=msg;el.classList.remove('hidden');
+  setTimeout(()=>el.classList.add('hidden'),4000);
+}
+</script>
+</body>
+</html>
