@@ -266,14 +266,14 @@ input,select,button,textarea{font-family:inherit}
             <div class="evbox" id="fEvBox"></div>
             <h3 style="border:none;padding:0;margin-bottom:8px">📷 Upload Photographs</h3>
             <p style="font-size:14px;color:var(--mut);margin-bottom:14px">
-              Add 1–5 geo-tagged photos. Caption auto-fills with filename — edit as needed.</p>
+              Add 1 geo-tagged photo. Caption auto-fills with filename — edit as needed.</p>
             <div class="al ali" style="font-size:13px;margin-bottom:14px">
               💡 Good caption: <em>"Chief Guest Dr. Ramesh inaugurating the workshop"</em>
             </div>
             <label class="photo-add-btn" id="fAddBtn">
-              <input type="file" id="fPhotoFile" accept="image/*" multiple
+              <input type="file" id="fPhotoFile" accept="image/*"
                 style="display:none" onchange="onPhotoSelect(this)">
-              <span style="font-size:18px">📷</span> Add Photos (up to 5)
+              <span style="font-size:18px">📷</span> Add Photo (1 only)
             </label>
             <div class="photo-list" id="fPhotoList"></div>
             <div id="fPhotoErr" class="al ale hidden"></div>
@@ -672,7 +672,7 @@ function onPhotoSelect(inp) {
   const files = Array.from(inp.files);
   const err   = document.getElementById('fPhotoErr');
   err.classList.add('hidden');
-  const room = 5 - photoSlots.length;
+  const room = 1 - photoSlots.length;
   if (room <= 0) {
     err.textContent = 'Maximum 5 photos allowed.';
     err.classList.remove('hidden'); return;
@@ -687,7 +687,7 @@ function onPhotoSelect(inp) {
   }
   renderPhotoList();
   inp.value = '';
-  if (photoSlots.length >= 5) document.getElementById('fAddBtn').style.display = 'none';
+  if (photoSlots.length >= 1) document.getElementById('fAddBtn').style.display = 'none';
 }
 
 function renderPhotoList() {
