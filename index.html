@@ -249,6 +249,8 @@ input,select,button,textarea{font-family:inherit}
                 <select id="fEvent" onchange="onFEvent()" disabled>
                   <option value="">— Select Event —</option>
                 </select>
+                <div id="evLegend" class="hidden" style="font-size:12px;color:var(--mut);
+                  margin-top:6px;padding:6px 10px;background:#f8f9fa;border-radius:6px"></div>
               </div>
               <div id="fDatePill" class="date-pill hidden">📅 <span id="fDateVal"></span></div>
               <button class="btn bp btn-full" id="fProceed" onclick="goStep2()" disabled>
@@ -592,10 +594,16 @@ function onFDept() {
   filtered.forEach(e => {
     const o = document.createElement('option');
     o.value = JSON.stringify(e);
-    o.textContent = e.hasPhotos ? `✅ ${e.event}` : `⬜ ${e.event}`;
-    if (e.hasPhotos) o.style.color = '#1e8e3e';
+    o.textContent = e.hasPhotos ? `✅ ${e.event} (photos uploaded)` : `📷 ${e.event}`;
     ev.appendChild(o);
   });
+
+  // Show legend below dropdown
+  const legend = document.getElementById('evLegend');
+  if (legend) {
+    legend.innerHTML = '<span style="margin-right:16px">✅ = Photos uploaded</span><span>📷 = Not yet uploaded</span>';
+    legend.classList.remove('hidden');
+  }
 }
 
 function onFEvent() {
@@ -604,23 +612,33 @@ function onFEvent() {
   const pr  = document.getElementById('fProceed');
   if (!ev.value) { dp.classList.add('hidden'); pr.disabled=true; return; }
 
-  selectedEv = JSON.parse(ev.value);
-  const dateText = selectedEv.date || 'No date';
-  const statusText = selectedEv.hasPhotos ? ' · ✅ Photos already uploaded' : ' · ⬜ No photos yet';
+  try { selectedEv = JSON.parse(ev.value); } catch(e) { return; }
+
+  const dateText   = selectedEv.date || 'No date';
+  const hasPhotos  = selectedEv.hasPhotos === true;
+  const statusText = hasPhotos ? ' · ✅ Photos already uploaded' : ' · 📷 No photos yet';
   document.getElementById('fDateVal').textContent = dateText + statusText;
   dp.classList.remove('hidden');
-  dp.style.background = selectedEv.hasPhotos ? '#e6f4ea' : '#e8f0fe';
-  dp.style.color      = selectedEv.hasPhotos ? '#1e8e3e' : '#1a73e8';
+  dp.style.background = hasPhotos ? '#e6f4ea' : '#e8f0fe';
+  dp.style.color      = hasPhotos ? '#1e8e3e' : '#1a73e8';
+  dp.style.borderColor = hasPhotos ? '#a8d5b5' : '#c5d8fb';
+
+  // Change proceed button color based on status
+  pr.style.background = hasPhotos ? '#f29900' : '';
+  pr.textContent = hasPhotos
+    ? '⚠️ Replace Existing Photos →'
+    : 'Continue to Upload Photos →';
   pr.disabled = false;
 }
 
 function goStep2() {
+  if (!selectedEv) return;
   // Warn if photos already uploaded for this event
-  if (selectedEv.hasPhotos) {
+  if (selectedEv.hasPhotos === true) {
     const confirmed = confirm(
-      `⚠️ Photos already uploaded for:\n\n"${selectedEv.event}"\n\nUploading again will REPLACE the existing photos.\n\nDo you want to continue?`
+      '⚠️ Photos already uploaded for:\n\n"' + selectedEv.event + '"\n\nUploading again will REPLACE the existing photos.\n\nDo you want to continue?'
     );
-    if (!confirmed) return; // stay on step 1
+    if (!confirmed) return;
   }
 
   setStep(2);
