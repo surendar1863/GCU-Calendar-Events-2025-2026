@@ -592,7 +592,9 @@ function onFDept() {
   filtered.forEach(e => {
     const o = document.createElement('option');
     o.value = JSON.stringify(e);
-    o.textContent = e.event; ev.appendChild(o);
+    o.textContent = e.hasPhotos ? `✅ ${e.event}` : `⬜ ${e.event}`;
+    if (e.hasPhotos) o.style.color = '#1e8e3e';
+    ev.appendChild(o);
   });
 }
 
@@ -603,18 +605,46 @@ function onFEvent() {
   if (!ev.value) { dp.classList.add('hidden'); pr.disabled=true; return; }
 
   selectedEv = JSON.parse(ev.value);
-  document.getElementById('fDateVal').textContent = selectedEv.date || 'No date';
+  const dateText = selectedEv.date || 'No date';
+  const statusText = selectedEv.hasPhotos ? ' · ✅ Photos already uploaded' : ' · ⬜ No photos yet';
+  document.getElementById('fDateVal').textContent = dateText + statusText;
   dp.classList.remove('hidden');
+  dp.style.background = selectedEv.hasPhotos ? '#e6f4ea' : '#e8f0fe';
+  dp.style.color      = selectedEv.hasPhotos ? '#1e8e3e' : '#1a73e8';
   pr.disabled = false;
 }
 
 function goStep2() {
+  // Warn if photos already uploaded for this event
+  if (selectedEv.hasPhotos) {
+    const confirmed = confirm(
+      `⚠️ Photos already uploaded for:\n\n"${selectedEv.event}"\n\nUploading again will REPLACE the existing photos.\n\nDo you want to continue?`
+    );
+    if (!confirmed) return; // stay on step 1
+  }
+
   setStep(2);
   document.getElementById('fs1').classList.add('hidden');
   document.getElementById('fs2').classList.remove('hidden');
+
+  // Show warning banner if replacing
+  const warningHtml = selectedEv.hasPhotos
+    ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;
+        padding:10px 14px;font-size:13px;color:#856404;margin-bottom:14px">
+        ⚠️ You are <b>replacing</b> existing photos for this event.
+        The old photos will be deleted from Google Drive.
+       </div>`
+    : '';
+
   document.getElementById('fEvBox').innerHTML =
     `<div class="evt">${selectedEv.event}</div>
      <div class="evm">${selectedEv.dept}${selectedEv.date?' · '+selectedEv.date:''}</div>`;
+
+  // Insert warning after evbox if replacing
+  if (selectedEv.hasPhotos) {
+    document.getElementById('fEvBox').insertAdjacentHTML('afterend', warningHtml);
+  }
+
   photoSlots = [];
   document.getElementById('fPhotoList').innerHTML = '';
   document.getElementById('fAddBtn').style.display = '';
