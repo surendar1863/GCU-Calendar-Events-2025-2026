@@ -10,8 +10,6 @@
 body{font-family:'Segoe UI',sans-serif;background:#fdf6f0;color:#2c1a0e;min-height:100vh}
 button,input,select,textarea{font-family:inherit}
 
-  
-
 /* LOGIN */
 #loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(145deg,#3d0a0a,#6B1A1A,#E07B20);z-index:9999}
@@ -428,11 +426,11 @@ function doSignIn() {
   app.style.flexDirection = 'column';
   document.getElementById('barRole').textContent = role === 'admin' ? '👤 Admin' : '👤 Faculty';
   if (role === 'admin') {
-    document.getElementById('vAdmin').style.display = 'flex';
+    document.getElementById('vAdmin').classList.remove('hidden');
     document.getElementById('urlInp').value = SURL;
     loadDashStats();
   } else {
-    const vf = document.getElementById('vFaculty'); vf.style.display='flex'; vf.style.flexDirection='column';
+    document.getElementById('vFaculty').classList.remove('hidden');
     loadEvents();
   }
 }
