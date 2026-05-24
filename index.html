@@ -565,11 +565,16 @@ async function loadEvents() {
     const data = await res.json();
     eventsData = data;
 
+    // Populate dept dropdown with school prefix e.g. "2 - Psychology"
     const dd = document.getElementById('fDept');
     dd.innerHTML = '<option value="">— Select Department —</option>';
-    (data.depts || []).forEach(d => {
-      const o = document.createElement('option');
-      o.value = d; o.textContent = d; dd.appendChild(o);
+    (data.schools || []).forEach(s => {
+      s.depts.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d;
+        o.textContent = `${s.no} - ${d}`;
+        dd.appendChild(o);
+      });
     });
 
     document.getElementById('evLoadMsg').classList.add('hidden');
@@ -580,6 +585,8 @@ async function loadEvents() {
     document.getElementById('evLoadErr').classList.remove('hidden');
   }
 }
+
+
 
 function onFDept() {
   const dept = document.getElementById('fDept').value;
@@ -784,6 +791,14 @@ async function submitFaculty() {
     await new Promise(r => setTimeout(r, 3000));
     setFProg(100, 'Done!');
 
+    // Instantly mark this event as having photos in local data
+    if (eventsData && eventsData.events) {
+      const ev = eventsData.events.find(e =>
+        e.rowIndex === selectedEv.rowIndex);
+      if (ev) ev.hasPhotos = true;
+    }
+    selectedEv.hasPhotos = true;
+
     // Show success screen
     const successCount = photos.length;
     const successEv    = { ...selectedEv };
@@ -815,25 +830,40 @@ function setFProg(p, t) {
 function resetFaculty() {
   photoSlots = []; selectedEv = null;
   setStep(1);
-  // Reset all steps
   document.getElementById('fs3').classList.add('hidden');
   document.getElementById('fs2').classList.add('hidden');
   document.getElementById('fs1').classList.remove('hidden');
-  // Reset form
-  document.getElementById('fDept').value = '';
+  // Re-render events with updated hasPhotos
+  const deptVal = document.getElementById('fDept').value;
+  document.getElementById('fDept').value = deptVal;
   document.getElementById('fEvent').innerHTML = '<option value="">— Select Event —</option>';
   document.getElementById('fEvent').disabled = true;
   document.getElementById('fDatePill').classList.add('hidden');
   document.getElementById('fProceed').disabled = true;
-  // Reset photo area
+  document.getElementById('evLegend').classList.add('hidden');
+  // Re-render event dropdown if dept was selected (with updated green status)
+  if (deptVal) {
+    const ev = document.getElementById('fEvent');
+    ev.disabled = false;
+    const filtered = (eventsData.events || []).filter(e => e.dept === deptVal);
+    filtered.forEach(e => {
+      const o = document.createElement('option');
+      o.value = JSON.stringify(e);
+      o.textContent = e.hasPhotos ? `✅ ${e.event} (photos uploaded)` : `📷 ${e.event}`;
+      ev.appendChild(o);
+    });
+    const legend = document.getElementById('evLegend');
+    if (legend) {
+      legend.innerHTML = '<span style="margin-right:16px">✅ = Photos uploaded</span><span>📷 = Not yet uploaded</span>';
+      legend.classList.remove('hidden');
+    }
+  }
   document.getElementById('fPhotoList').innerHTML = '';
   document.getElementById('fAddBtn').style.display = '';
   document.getElementById('fPhotoErr').classList.add('hidden');
-  // Reset submit button
   const btn = document.getElementById('fSubmit');
   btn.disabled = false;
   btn.innerHTML = '📤 Submit Photographs';
-  // Reset progress
   document.getElementById('fProgWrap').classList.add('hidden');
   document.getElementById('fProgFill').style.width = '0%';
 }
