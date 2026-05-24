@@ -156,7 +156,7 @@ input,select,button,textarea{font-family:inherit}
   display:flex;align-items:center;gap:8px}
 .dept-heading::before{content:"";display:inline-block;width:6px;height:22px;
   background:#E07B20;border-radius:3px;flex-shrink:0}
-.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.photo-grid{display:grid;grid-template-columns:repeat(var(--grid-cols,3),1fr);gap:10px}
 .grid-item{display:flex;flex-direction:column;gap:5px}
 .grid-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;
   background:var(--bg);display:block}
@@ -368,6 +368,12 @@ input,select,button,textarea{font-family:inherit}
           <button class="btn bp" onclick="loadReport()" id="refreshBtn">
             🔄 Refresh
           </button>
+          <select id="gridCols" onchange="if(reportData.length) renderReport()" style="padding:9px 14px;border:1.5px solid var(--brd);
+            border-radius:var(--r);font-size:14px;font-family:inherit;cursor:pointer;
+            background:#fff;color:var(--txt)">
+            <option value="3">3 per row</option>
+            <option value="4">4 per row</option>
+          </select>
           <button class="btn bg" onclick="generateDocx()" id="genBtn" disabled>
             ⬇ Download .docx
           </button>
@@ -936,6 +942,10 @@ async function loadReport() {
 }
 
 function renderReport() {
+  // Apply selected grid cols to preview
+  const cols = document.getElementById('gridCols')?.value || '3';
+  document.documentElement.style.setProperty('--grid-cols', cols);
+
   const byDept = {};
   reportData.forEach(item => {
     if (!byDept[item.dept]) byDept[item.dept] = [];
@@ -1012,7 +1022,8 @@ async function generateDocx() {
 
     setGProg(70, 'Building document…');
 
-    const tblW=9360, cols=3, colTw=Math.floor(tblW/cols);
+    const cols=parseInt(document.getElementById('gridCols')?.value||'3');
+    const tblW=9360, colTw=Math.floor(tblW/cols);
     const imgW=Math.floor((colTw-80)*635), imgH=Math.floor(imgW*0.75);
     let body=''; let ri=0;
 
@@ -1028,13 +1039,16 @@ async function generateDocx() {
         <w:pBdr><w:bottom w:val="single" w:sz="8" w:space="1" w:color="1a1a1a"/></w:pBdr>
       </w:pPr></w:p>`;
 
+      // Collect ALL photos for this dept into one flat array for grid layout
+      const deptImgs = [];
       byDept[dept].forEach(item=>{
         const [rS,rE]=itemRanges[ri++];
-        const evImgs=imgs.slice(rS,rE);
-        if(!evImgs.length) return;
+        imgs.slice(rS,rE).forEach(img => deptImgs.push(img));
+      });
 
-        for(let r=0;r<evImgs.length;r+=cols){
-          const chunk=evImgs.slice(r,r+cols);
+      for(let r=0;r<deptImgs.length;r+=cols){
+        const chunk=deptImgs.slice(r,r+cols);
+        {
           body+=`<w:tbl><w:tblPr><w:tblW w:w="${tblW}" w:type="dxa"/>
             <w:tblBorders><w:top w:val="none"/><w:left w:val="none"/>
               <w:bottom w:val="none"/><w:right w:val="none"/>
@@ -1105,7 +1119,8 @@ async function generateDocx() {
           body+=`</w:tr></w:tbl>`;
         }
         body+=`<w:p><w:pPr><w:spacing w:after="100"/></w:pPr><w:r><w:t></w:t></w:r></w:p>`;
-      });
+        }
+      }
     });
 
     setGProg(88, 'Assembling file…');
