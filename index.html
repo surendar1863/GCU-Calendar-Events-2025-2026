@@ -200,10 +200,10 @@ button,input,select,textarea{font-family:inherit}
     <div class="lrow">
       <label>Password</label>
       <input type="password" id="lPass" placeholder="Enter password"
-        onkeydown="if(event.key==='Enter')login()">
+        onkeydown="if(event.key==='Enter')doSignIn()">
     </div>
     <div class="lerr" id="lerr">Incorrect password. Please try again.</div>
-    <button class="lbtn" onclick="login()">Sign In →</button>
+    <button class="lbtn" onclick="doSignIn()">Sign In →</button>
     <div class="lhint">Faculty: <b>gcu2024</b> &nbsp;·&nbsp; Admin: <b>gcuadmin</b><br>
       <span style="font-size:10px">Change in Admin → Settings</span></div>
   </div>
@@ -402,13 +402,15 @@ button,input,select,textarea{font-family:inherit}
 // ════ STATE ══════════════════════════════════════════════════
 let SURL  = localStorage.getItem('gcuPRUrl') || 'https://script.google.com/macros/s/…/exec';
 let PW    = JSON.parse(localStorage.getItem('gcuPW') || '{"u":"gcu2024","a":"gcuadmin"}');
+// Clear any corrupted password data
+if (!PW.u || !PW.a) { PW = {u:'gcu2024', a:'gcuadmin'}; localStorage.removeItem('gcuPW'); }
 let ED    = {schools:[],events:[]};
 let SLOTS = [];
 let SEV   = null;
 let rdata = [];
 
 // ════ LOGIN ══════════════════════════════════════════════════
-function login() {
+function doSignIn() {
   const role = document.getElementById('lRole').value;
   const pass = document.getElementById('lPass').value;
   const exp  = role === 'admin' ? PW.a : PW.u;
@@ -520,10 +522,20 @@ function renderPhotos() {
   SLOTS.forEach((s,i) => {
     const d = document.createElement('div');
     d.className = 'pitem';
-    d.innerHTML = '<div class="pthumb"><img src="'+s.url+'" alt="Photo"><button class="prm" onclick="rmPhoto('+i+')">×</button></div>' +
-      '<div class="pright"><div class="plbl">Photo '+(i+1)+'</div>' +
-      '<textarea class="pcap" id="pc'+i+'" rows="2" oninput="SLOTS['+i+'].caption=this.value;this.classList.remove('bad');document.getElementById('pe'+i+'').style.display='none'">'+s.caption+'</textarea>' +
-      '<div class="perr" id="pe'+i+'">Caption required</div></div>';
+    // Build photo item using DOM to avoid quote escaping issues
+    d.innerHTML = `<div class="pthumb"><img src="${s.url}" alt="Photo"><button class="prm" onclick="rmPhoto(${i})">×</button></div>
+      <div class="pright">
+        <div class="plbl">Photo ${i+1}</div>
+        <textarea class="pcap" id="pc${i}" rows="2">${s.caption}</textarea>
+        <div class="perr" id="pe${i}">Caption required</div>
+      </div>`;
+    // Add oninput after creation to avoid escaping issues
+    const ta = d.querySelector('textarea');
+    ta.addEventListener('input', function() {
+      SLOTS[i].caption = this.value;
+      this.classList.remove('bad');
+      document.getElementById('pe'+i).style.display='none';
+    });
     list.appendChild(d);
   });
 }
